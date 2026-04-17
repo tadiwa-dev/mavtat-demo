@@ -1,0 +1,7 @@
+{
+  "buildCommand": "echo 'Static site - no build needed'",
+  "framework": "static",
+  "name": "mavtat-motors-demo",
+  "public": true,
+  "installCommand": "echo 'No dependencies to install'"
+}

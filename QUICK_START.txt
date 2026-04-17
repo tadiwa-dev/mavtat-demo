@@ -1,0 +1,59 @@
+📱 MAVTAT Motors - Quick Start Guide
+
+🔗 Open the app: https://mavtat-demo.vercel.app
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✨ MAIN FEATURES:
+
+🏠 DASHBOARD
+• See total fleet, active vehicles, maintenance count
+• View recent activity & revenue summary
+
+📋 REGISTRY
+• View all your vehicles
+• 🔍 Search by name or license plate
+• Click "Status" to change vehicle status (Available/Active/Rented/Maintenance/Low Fuel/Inactive)
+• Click "Update km" to update mileage
+• Click "+ New" to add a new vehicle
+
+📊 REPORTS
+• Financial breakdown per vehicle
+• Export to Excel (CSV) or PDF
+• See profit/revenue for each vehicle
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎮 QUICK ACTIONS:
+
+➕ ADD VEHICLE
+1. Click "+ New" on Dashboard or Registry
+2. Enter: Make/Model, License Plate, Type, Mileage
+3. Click "Save Vehicle"
+
+📍 UPDATE STATUS
+1. Go to Registry
+2. Click "Status" button
+3. Choose new status
+4. Click "Update Status"
+
+⛽ UPDATE MILEAGE
+1. Go to Registry
+2. Click "Update km" button
+3. Enter new mileage (must be higher)
+4. Click "Update"
+
+📥 EXPORT REPORTS
+1. Go to Reports
+2. Click "Excel (CSV)" or "PDF Report"
+3. Download & share with team
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 TIPS:
+✓ Works on desktop, tablet & mobile
+✓ All changes are instant
+✓ Data resets when you refresh (demo mode)
+✓ Use search to find vehicles quickly
+
+Ready to explore? Start at the link above! 🚗

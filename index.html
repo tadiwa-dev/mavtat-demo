@@ -395,6 +395,47 @@
         </div>
     </div>
 
+    <!-- Update Status Modal -->
+    <div id="modal-update-status" class="modal-overlay fixed inset-0 bg-on-surface/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="modal-content bg-surface-container-lowest rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low">
+                <h3 class="font-bold font-headline text-lg text-primary">Update Vehicle Status</h3>
+                <button onclick="app.closeModal('modal-update-status')" class="text-secondary hover:bg-surface-variant p-1 rounded-lg">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="form-update-status" onsubmit="app.saveStatus(event)" class="p-6 space-y-4">
+                <input type="hidden" id="us-id">
+                <div class="bg-surface-container p-3 rounded-lg flex items-center gap-3 mb-2">
+                    <span class="material-symbols-outlined text-primary">directions_car</span>
+                    <div>
+                        <p class="font-bold text-sm" id="us-name">Vehicle Name</p>
+                        <p class="text-xs text-secondary" id="us-plate">Plate</p>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Current Status</label>
+                    <input type="text" id="us-current" disabled class="w-full px-4 py-2 bg-surface-container border border-transparent rounded-lg text-sm text-secondary font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">New Status</label>
+                    <select id="us-new" required class="w-full px-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:border-primary outline-none text-primary font-bold">
+                        <option value="Available">Available</option>
+                        <option value="Active">Active</option>
+                        <option value="Rented">Rented</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="Low Fuel">Low Fuel</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="app.closeModal('modal-update-status')" class="flex-1 px-4 py-2 bg-surface-container-high text-on-surface font-bold rounded-lg hover:bg-surface-variant">Cancel</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-primary text-white font-bold rounded-lg hover:opacity-90">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
@@ -578,7 +619,10 @@
                                 <span class="text-xs font-bold text-on-surface">${v.status}</span>
                             </div>
                         </td>
-                        <td class="px-6 py-4 text-right">
+                        <td class="px-6 py-4 text-right flex gap-2 justify-end flex-wrap">
+                            <button onclick="app.openUpdateStatus('${v.id}')" class="px-3 py-1.5 bg-surface-container text-on-surface text-xs font-bold rounded-lg hover:bg-surface-variant transition-colors border border-outline-variant/20">
+                                Status
+                            </button>
                             <button onclick="app.openUpdateMileage('${v.id}')" class="px-3 py-1.5 bg-surface-container text-primary text-xs font-bold rounded-lg hover:bg-primary-fixed transition-colors border border-outline-variant/20">
                                 Update km
                             </button>
@@ -658,6 +702,9 @@
                     document.getElementById('form-update-mileage').reset();
                     document.getElementById('um-error').classList.add('hidden');
                 }
+                if(id === 'modal-update-status') {
+                    document.getElementById('form-update-status').reset();
+                }
             },
 
             addVehicle(e) {
@@ -699,6 +746,19 @@
                 this.openModal('modal-update-mileage');
             },
 
+            openUpdateStatus(id) {
+                const vehicle = this.state.vehicles.find(v => v.id === id);
+                if(!vehicle) return;
+
+                document.getElementById('us-id').value = vehicle.id;
+                document.getElementById('us-name').innerText = vehicle.name;
+                document.getElementById('us-plate').innerText = vehicle.plate;
+                document.getElementById('us-current').value = vehicle.status;
+                document.getElementById('us-new').value = vehicle.status;
+                
+                this.openModal('modal-update-status');
+            },
+
             saveMileage(e) {
                 e.preventDefault();
                 const id = document.getElementById('um-id').value;
@@ -719,6 +779,25 @@
                 this.closeModal('modal-update-mileage');
                 this.renderRegistry();
                 this.showToast(`Mileage updated for ${vehicle.plate}.`);
+            },
+
+            saveStatus(e) {
+                e.preventDefault();
+                const id = document.getElementById('us-id').value;
+                const vehicle = this.state.vehicles.find(v => v.id === id);
+                const newStatus = document.getElementById('us-new').value;
+
+                const oldStatus = vehicle.status;
+                vehicle.status = newStatus;
+                
+                this.state.activities.unshift({
+                    time: 'Just Now', car: vehicle.plate, type: `Status Changed: ${oldStatus} → ${newStatus}`, status: 'Completed'
+                });
+
+                this.closeModal('modal-update-status');
+                this.renderRegistry();
+                this.renderDashboard();
+                this.showToast(`Status updated to "${newStatus}" for ${vehicle.plate}.`);
             },
 
             // Exports

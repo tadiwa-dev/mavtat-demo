@@ -233,6 +233,9 @@
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Type</th>
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Mileage</th>
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Fuel</th>
+                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Weekly Cash-In</th>
+                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Balance</th>
+                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Expenses</th>
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Status</th>
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary text-right">Actions</th>
                             </tr>
@@ -281,8 +284,7 @@
                             <tr class="bg-surface-container-low border-b border-outline-variant/10">
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Asset</th>
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary text-right">Revenue</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary text-right">Fuel Cost</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary text-right">Maint. Cost</th>
+                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary text-right">Expenses</th>
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary text-right">Net Profit</th>
                             </tr>
                         </thead>
@@ -436,6 +438,73 @@
         </div>
     </div>
 
+    <!-- Update Cash-In Modal -->
+    <div id="modal-update-cashin" class="modal-overlay fixed inset-0 bg-on-surface/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="modal-content bg-surface-container-lowest rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low">
+                <h3 class="font-bold font-headline text-lg text-primary">Update Weekly Cash-In & Balance</h3>
+                <button onclick="app.closeModal('modal-update-cashin')" class="text-secondary hover:bg-surface-variant p-1 rounded-lg">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="form-update-cashin" onsubmit="app.saveCashIn(event)" class="p-6 space-y-4">
+                <input type="hidden" id="ci-id">
+                <div class="bg-surface-container p-3 rounded-lg flex items-center gap-3 mb-2">
+                    <span class="material-symbols-outlined text-primary">taxi</span>
+                    <div>
+                        <p class="font-bold text-sm" id="ci-name">Vehicle Name</p>
+                        <p class="text-xs text-secondary" id="ci-plate">Plate</p>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Weekly Cash-In ($)</label>
+                    <input type="number" id="ci-weekly" required min="0" step="0.01" class="w-full px-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:border-primary outline-none text-primary font-bold text-lg">
+                    <p class="text-[10px] text-secondary mt-1">Amount collected weekly from this taxi</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Current Balance ($)</label>
+                    <input type="number" id="ci-balance" required min="0" step="0.01" class="w-full px-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:border-primary outline-none text-primary font-bold text-lg">
+                    <p class="text-[10px] text-secondary mt-1">Total accumulated balance</p>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="app.closeModal('modal-update-cashin')" class="flex-1 px-4 py-2 bg-surface-container-high text-on-surface font-bold rounded-lg hover:bg-surface-variant">Cancel</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-primary text-white font-bold rounded-lg hover:opacity-90">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Update Expenses Modal -->
+    <div id="modal-update-expenses" class="modal-overlay fixed inset-0 bg-on-surface/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="modal-content bg-surface-container-lowest rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low">
+                <h3 class="font-bold font-headline text-lg text-primary">Update Total Expenses</h3>
+                <button onclick="app.closeModal('modal-update-expenses')" class="text-secondary hover:bg-surface-variant p-1 rounded-lg">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="form-update-expenses" onsubmit="app.saveExpenses(event)" class="p-6 space-y-4">
+                <input type="hidden" id="ex-id">
+                <div class="bg-surface-container p-3 rounded-lg flex items-center gap-3 mb-2">
+                    <span class="material-symbols-outlined text-primary">receipt</span>
+                    <div>
+                        <p class="font-bold text-sm" id="ex-name">Vehicle Name</p>
+                        <p class="text-xs text-secondary" id="ex-plate">Plate</p>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Total Expenses ($)</label>
+                    <input type="number" id="ex-amount" required min="0" step="0.01" class="w-full px-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:border-primary outline-none text-primary font-bold text-lg">
+                    <p class="text-[10px] text-secondary mt-1">Fuel + Maintenance + Other costs</p>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="app.closeModal('modal-update-expenses')" class="flex-1 px-4 py-2 bg-surface-container-high text-on-surface font-bold rounded-lg hover:bg-surface-variant">Cancel</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-primary text-white font-bold rounded-lg hover:opacity-90">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
@@ -446,14 +515,14 @@
                 currentView: 'dashboard',
                 // Substantial sample data for reporting
                 vehicles: [
-                    { id: 'v1', name: 'Mercedes-Benz E-Class', plate: 'K-TX 4052', type: 'Taxi', mileage: 42850, fuel: 82, status: 'Active', rev: 24500, costFuel: 6200, costMaint: 1150 },
-                    { id: 'v2', name: 'Tesla Model 3', plate: 'EV-RENT 99', type: 'Rental', mileage: 12102, fuel: 45, status: 'Rented', rev: 31200, costFuel: 800, costMaint: 200 },
-                    { id: 'v3', name: 'Volkswagen ID.4', plate: 'W-ID 2024', type: 'Rental', mileage: 3500, fuel: 98, status: 'Available', rev: 8400, costFuel: 400, costMaint: 150 },
-                    { id: 'v4', name: 'Toyota Camry Hybrid', plate: 'B-TY 8821', type: 'Taxi', mileage: 115200, fuel: 15, status: 'Low Fuel', rev: 19900, costFuel: 5400, costMaint: 980 },
-                    { id: 'v5', name: 'Freightliner Cascadia', plate: 'TRK-882', type: 'Logistics', mileage: 250000, fuel: 60, status: 'Active', rev: 45000, costFuel: 12000, costMaint: 3500 },
-                    { id: 'v6', name: 'Ford Transit', plate: 'VAN-559', type: 'Logistics', mileage: 85000, fuel: 75, status: 'Available', rev: 12800, costFuel: 3450, costMaint: 420 },
-                    { id: 'v7', name: 'Nissan NV200', plate: 'TX-5501', type: 'Taxi', mileage: 65400, fuel: 30, status: 'Maintenance', rev: 15600, costFuel: 4100, costMaint: 2100 },
-                    { id: 'v8', name: 'Kia EV6', plate: 'EV-RENT 42', type: 'Rental', mileage: 8200, fuel: 100, status: 'Available', rev: 11200, costFuel: 550, costMaint: 0 },
+                    { id: 'v1', name: 'Mercedes-Benz E-Class', plate: 'K-TX 4052', type: 'Taxi', mileage: 42850, fuel: 82, status: 'Active', rev: 24500, costFuel: 6200, costMaint: 1150, expenses: 7350, weeklyCashIn: 450, balance: 3250 },
+                    { id: 'v2', name: 'Tesla Model 3', plate: 'EV-RENT 99', type: 'Rental', mileage: 12102, fuel: 45, status: 'Rented', rev: 31200, costFuel: 800, costMaint: 200, expenses: 1000, weeklyCashIn: 620, balance: 5400 },
+                    { id: 'v3', name: 'Volkswagen ID.4', plate: 'W-ID 2024', type: 'Rental', mileage: 3500, fuel: 98, status: 'Available', rev: 8400, costFuel: 400, costMaint: 150, expenses: 550, weeklyCashIn: 280, balance: 1850 },
+                    { id: 'v4', name: 'Toyota Camry Hybrid', plate: 'B-TY 8821', type: 'Taxi', mileage: 115200, fuel: 15, status: 'Low Fuel', rev: 19900, costFuel: 5400, costMaint: 980, expenses: 6380, weeklyCashIn: 380, balance: 2150 },
+                    { id: 'v5', name: 'Freightliner Cascadia', plate: 'TRK-882', type: 'Logistics', mileage: 250000, fuel: 60, status: 'Active', rev: 45000, costFuel: 12000, costMaint: 3500, expenses: 15500 },
+                    { id: 'v6', name: 'Ford Transit', plate: 'VAN-559', type: 'Logistics', mileage: 85000, fuel: 75, status: 'Available', rev: 12800, costFuel: 3450, costMaint: 420, expenses: 3870 },
+                    { id: 'v7', name: 'Nissan NV200', plate: 'TX-5501', type: 'Taxi', mileage: 65400, fuel: 30, status: 'Maintenance', rev: 15600, costFuel: 4100, costMaint: 2100, expenses: 6200, weeklyCashIn: 320, balance: 1850 },
+                    { id: 'v8', name: 'Kia EV6', plate: 'EV-RENT 42', type: 'Rental', mileage: 8200, fuel: 100, status: 'Available', rev: 11200, costFuel: 550, costMaint: 0, expenses: 550, weeklyCashIn: 450, balance: 3100 },
                 ],
                 activities: [
                     { time: '10:42 AM', car: 'TRK-882', type: 'Maintenance Check', status: 'Completed' },
@@ -584,6 +653,8 @@
                     if(v.status === 'Rented') statusColor = 'bg-primary';
                     if(v.status === 'Low Fuel' || v.status === 'Maintenance') statusColor = 'bg-error';
 
+                    const hasWeeklyCashIn = v.weeklyCashIn !== undefined;
+
                     return `
                     <tr class="hover:bg-surface-dim/30 transition-colors group">
                         <td class="px-6 py-4">
@@ -613,6 +684,20 @@
                                 </div>
                             </div>
                         </td>
+                        ${hasWeeklyCashIn ? `
+                        <td class="px-6 py-4">
+                            <p class="text-sm font-bold text-primary">${this.formatCurrency(v.weeklyCashIn)}</p>
+                        </td>
+                        <td class="px-6 py-4">
+                            <p class="text-sm font-bold text-on-surface">${this.formatCurrency(v.balance)}</p>
+                        </td>
+                        ` : `
+                        <td class="px-6 py-4 text-secondary text-xs">-</td>
+                        <td class="px-6 py-4 text-secondary text-xs">-</td>
+                        `}
+                        <td class="px-6 py-4">
+                            <p class="text-sm font-bold text-error">${this.formatCurrency(v.expenses || 0)}</p>
+                        </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-2">
                                 <span class="w-2 h-2 rounded-full ${statusColor}"></span>
@@ -620,6 +705,14 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 text-right flex gap-2 justify-end flex-wrap">
+                            <button onclick="app.openUpdateExpenses('${v.id}')" class="px-3 py-1.5 bg-surface-container text-error text-xs font-bold rounded-lg hover:bg-error hover:text-white transition-colors border border-outline-variant/20">
+                                Expenses
+                            </button>
+                            ${hasWeeklyCashIn ? `
+                            <button onclick="app.openUpdateCashIn('${v.id}')" class="px-3 py-1.5 bg-surface-container text-primary text-xs font-bold rounded-lg hover:bg-primary hover:text-white transition-colors border border-outline-variant/20">
+                                Cash-In
+                            </button>
+                            ` : ''}
                             <button onclick="app.openUpdateStatus('${v.id}')" class="px-3 py-1.5 bg-surface-container text-on-surface text-xs font-bold rounded-lg hover:bg-surface-variant transition-colors border border-outline-variant/20">
                                 Status
                             </button>
@@ -639,10 +732,8 @@
 
             renderReports() {
                 const totalRev = this.state.vehicles.reduce((s, v) => s + v.rev, 0);
-                const totalFuel = this.state.vehicles.reduce((s, v) => s + v.costFuel, 0);
-                const totalMaint = this.state.vehicles.reduce((s, v) => s + v.costMaint, 0);
-                const totalCost = totalFuel + totalMaint;
-                const netProfit = totalRev - totalCost;
+                const totalExpenses = this.state.vehicles.reduce((s, v) => s + (v.expenses || 0), 0);
+                const netProfit = totalRev - totalExpenses;
 
                 document.getElementById('report-stats').innerHTML = `
                     <div class="bg-surface-container-highest p-6 rounded-xl">
@@ -650,8 +741,8 @@
                         <div class="mt-2 text-3xl font-black text-on-surface">${this.formatCurrency(totalRev)}</div>
                     </div>
                     <div class="bg-surface-container-highest p-6 rounded-xl">
-                        <span class="text-[10px] font-bold uppercase tracking-widest text-secondary">Total Operational Costs</span>
-                        <div class="mt-2 text-3xl font-black text-error">${this.formatCurrency(totalCost)}</div>
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-secondary">Total Expenses</span>
+                        <div class="mt-2 text-3xl font-black text-error">${this.formatCurrency(totalExpenses)}</div>
                     </div>
                     <div class="bg-primary-fixed p-6 rounded-xl">
                         <span class="text-[10px] font-bold uppercase tracking-widest text-primary">Net Fleet Profit</span>
@@ -661,7 +752,7 @@
 
                 const tbody = document.getElementById('reports-tbody');
                 tbody.innerHTML = this.state.vehicles.map(v => {
-                    const profit = v.rev - (v.costFuel + v.costMaint);
+                    const profit = v.rev - (v.expenses || 0);
                     return `
                         <tr class="hover:bg-surface-dim/30">
                             <td class="px-6 py-4">
@@ -669,8 +760,7 @@
                                 <div class="text-[10px] text-secondary uppercase">${v.plate}</div>
                             </td>
                             <td class="px-6 py-4 text-right font-medium text-on-surface">${this.formatCurrency(v.rev)}</td>
-                            <td class="px-6 py-4 text-right text-secondary">${this.formatCurrency(v.costFuel)}</td>
-                            <td class="px-6 py-4 text-right text-secondary">${this.formatCurrency(v.costMaint)}</td>
+                            <td class="px-6 py-4 text-right text-secondary">${this.formatCurrency(v.expenses || 0)}</td>
                             <td class="px-6 py-4 text-right">
                                 <span class="inline-block px-3 py-1 rounded bg-surface-container text-on-surface font-bold text-sm">
                                     ${this.formatCurrency(profit)}
@@ -684,8 +774,7 @@
                     <tr>
                         <td class="px-6 py-4 uppercase text-[10px] tracking-widest text-secondary">Total</td>
                         <td class="px-6 py-4 text-right text-lg">${this.formatCurrency(totalRev)}</td>
-                        <td class="px-6 py-4 text-right text-error text-sm">${this.formatCurrency(totalFuel)}</td>
-                        <td class="px-6 py-4 text-right text-error text-sm">${this.formatCurrency(totalMaint)}</td>
+                        <td class="px-6 py-4 text-right text-error text-sm">${this.formatCurrency(totalExpenses)}</td>
                         <td class="px-6 py-4 text-right text-primary text-lg">${this.formatCurrency(netProfit)}</td>
                     </tr>
                 `;
@@ -705,6 +794,12 @@
                 if(id === 'modal-update-status') {
                     document.getElementById('form-update-status').reset();
                 }
+                if(id === 'modal-update-cashin') {
+                    document.getElementById('form-update-cashin').reset();
+                }
+                if(id === 'modal-update-expenses') {
+                    document.getElementById('form-update-expenses').reset();
+                }
             },
 
             addVehicle(e) {
@@ -717,8 +812,14 @@
                 const newCar = {
                     id: 'v' + Date.now(),
                     name, plate, type, mileage, fuel: 100, status: 'Available',
-                    rev: 0, costFuel: 0, costMaint: 0
+                    rev: 0, expenses: 0
                 };
+
+                // Add cash-in tracking for taxis and rentals
+                if (type === 'Taxi' || type === 'Rental') {
+                    newCar.weeklyCashIn = 0;
+                    newCar.balance = 0;
+                }
 
                 this.state.vehicles.unshift(newCar);
                 
@@ -800,14 +901,80 @@
                 this.showToast(`Status updated to "${newStatus}" for ${vehicle.plate}.`);
             },
 
+            openUpdateCashIn(id) {
+                const vehicle = this.state.vehicles.find(v => v.id === id);
+                if(!vehicle || !vehicle.weeklyCashIn) return;
+
+                document.getElementById('ci-id').value = vehicle.id;
+                document.getElementById('ci-name').innerText = vehicle.name;
+                document.getElementById('ci-plate').innerText = vehicle.plate;
+                document.getElementById('ci-weekly').value = vehicle.weeklyCashIn;
+                document.getElementById('ci-balance').value = vehicle.balance;
+                
+                this.openModal('modal-update-cashin');
+            },
+
+            saveCashIn(e) {
+                e.preventDefault();
+                const id = document.getElementById('ci-id').value;
+                const vehicle = this.state.vehicles.find(v => v.id === id);
+                const newWeeklyCashIn = parseFloat(document.getElementById('ci-weekly').value);
+                const newBalance = parseFloat(document.getElementById('ci-balance').value);
+
+                const oldCashIn = vehicle.weeklyCashIn;
+                vehicle.weeklyCashIn = newWeeklyCashIn;
+                vehicle.balance = newBalance;
+                
+                this.state.activities.unshift({
+                    time: 'Just Now', car: vehicle.plate, type: `Weekly Cash-In: $${oldCashIn.toFixed(2)} → $${newWeeklyCashIn.toFixed(2)}`, status: 'Completed'
+                });
+
+                this.closeModal('modal-update-cashin');
+                this.renderRegistry();
+                this.renderDashboard();
+                this.showToast(`Weekly cash-in updated for ${vehicle.plate}. New balance: ${this.formatCurrency(newBalance)}`);
+            },
+
+            openUpdateExpenses(id) {
+                const vehicle = this.state.vehicles.find(v => v.id === id);
+                if(!vehicle) return;
+
+                document.getElementById('ex-id').value = vehicle.id;
+                document.getElementById('ex-name').innerText = vehicle.name;
+                document.getElementById('ex-plate').innerText = vehicle.plate;
+                document.getElementById('ex-amount').value = vehicle.expenses || 0;
+                
+                this.openModal('modal-update-expenses');
+            },
+
+            saveExpenses(e) {
+                e.preventDefault();
+                const id = document.getElementById('ex-id').value;
+                const vehicle = this.state.vehicles.find(v => v.id === id);
+                const newExpenses = parseFloat(document.getElementById('ex-amount').value);
+
+                const oldExpenses = vehicle.expenses || 0;
+                vehicle.expenses = newExpenses;
+                
+                this.state.activities.unshift({
+                    time: 'Just Now', car: vehicle.plate, type: `Expenses Updated: $${oldExpenses.toFixed(2)} → $${newExpenses.toFixed(2)}`, status: 'Completed'
+                });
+
+                this.closeModal('modal-update-expenses');
+                this.renderRegistry();
+                this.renderDashboard();
+                this.renderReports();
+                this.showToast(`Expenses updated for ${vehicle.plate}.`);
+            },
+
             // Exports
             exportCSV() {
                 let csvContent = "data:text/csv;charset=utf-8,";
-                csvContent += "Asset,Plate,Type,Revenue,Fuel Cost,Maint Cost,Net Profit\r\n";
+                csvContent += "Asset,Plate,Type,Revenue,Expenses,Net Profit\r\n";
 
                 this.state.vehicles.forEach(v => {
-                    const profit = v.rev - (v.costFuel + v.costMaint);
-                    const row = `"${v.name}","${v.plate}","${v.type}",${v.rev},${v.costFuel},${v.costMaint},${profit}`;
+                    const profit = v.rev - (v.expenses || 0);
+                    const row = `"${v.name}","${v.plate}","${v.type}",${v.rev},${v.expenses || 0},${profit}`;
                     csvContent += row + "\r\n";
                 });
 
@@ -836,19 +1003,19 @@
                     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
 
                     const tableData = this.state.vehicles.map(v => {
-                        const profit = v.rev - (v.costFuel + v.costMaint);
+                        const profit = v.rev - (v.expenses || 0);
                         return [
                             `${v.name}\n(${v.plate})`,
                             v.type,
                             this.formatCurrency(v.rev),
-                            this.formatCurrency(v.costFuel + v.costMaint),
+                            this.formatCurrency(v.expenses || 0),
                             this.formatCurrency(profit)
                         ];
                     });
 
                     doc.autoTable({
                         startY: 40,
-                        head: [['Asset Details', 'Type', 'Revenue', 'Total Costs', 'Net Profit']],
+                        head: [['Asset Details', 'Type', 'Revenue', 'Expenses', 'Net Profit']],
                         body: tableData,
                         theme: 'striped',
                         headStyles: { fillColor: [0, 64, 161] },

@@ -111,30 +111,125 @@
         }
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+        aside {
+            transition: width 0.25s ease;
+        }
+
+        body.sidebar-collapsed aside {
+            width: 5.5rem;
+        }
+        body.sidebar-collapsed header {
+            padding-left: 5.5rem !important;
+        }
+        body.sidebar-collapsed main {
+            padding-left: 5.5rem !important;
+        }
+        body.sidebar-collapsed #desktop-nav .nav-btn {
+            justify-content: center;
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+        body.sidebar-collapsed #desktop-nav .nav-btn span + span {
+            display: none;
+        }
+        body.sidebar-collapsed .collapse-label {
+            display: none;
+        }
+        body.sidebar-collapsed aside > .text-xl {
+            display: none;
+        }
+        body.sidebar-collapsed .nav-btn {
+            text-align: center;
+        }
+        body.sidebar-collapsed .nav-btn span.material-symbols-outlined {
+            margin: 0;
+        }
+
+        .responsive-registry-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .responsive-registry-table td,
+        .responsive-registry-table th {
+            word-break: break-word;
+        }
+        @media (max-width: 1023px) {
+            .responsive-registry-table thead {
+                display: none;
+            }
+            .responsive-registry-table tbody tr {
+                display: block;
+                width: 100%;
+                margin-bottom: 1rem;
+                border-bottom: 1px solid #e5e2e1;
+            }
+            .responsive-registry-table tbody td {
+                display: block;
+                width: 100%;
+                padding: 0.75rem 0;
+                border: none;
+            }
+            .responsive-registry-table tbody td .sm-label {
+                display: block;
+                margin-bottom: 0.35rem;
+                color: #6b7280;
+                font-size: 0.65rem;
+                font-weight: 700;
+                letter-spacing: 0.15em;
+                text-transform: uppercase;
+            }
+            .responsive-registry-table tbody td .sm-value {
+                display: block;
+            }
+            .responsive-registry-table tbody td.actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                justify-content: flex-start;
+            }
+        }
+        @media (min-width: 1024px) {
+            .responsive-registry-table tbody tr {
+                display: table-row;
+            }
+            .responsive-registry-table tbody td {
+                display: table-cell;
+            }
+            .responsive-registry-table tbody td .sm-label {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body class="bg-surface text-on-surface">
 
     <!-- Desktop Sidebar -->
     <aside class="h-screen w-64 fixed left-0 top-0 hidden md:flex flex-col bg-[#f2f0ef] p-4 gap-2 z-40 border-r border-outline-variant/20">
-        <div class="text-xl font-black text-primary mb-8 font-headline tracking-tight px-2 mt-2">MAVTAT Motors</div>
+        <div class="flex items-center justify-between mb-6 px-2">
+            <div class="text-xl font-black text-primary font-headline tracking-tight">MAVTAT Motors</div>
+            <button onclick="app.toggleSidebar()" class="flex items-center justify-center w-10 h-10 rounded-full bg-surface-container text-secondary hover:bg-surface-variant transition-colors" title="Toggle sidebar">
+                <span class="material-symbols-outlined" id="sidebar-toggle-icon">menu</span>
+            </button>
+        </div>
         <div class="flex flex-col gap-2 mb-auto" id="desktop-nav">
             <button onclick="app.navigate('dashboard')" class="nav-btn dashboard-btn flex items-center gap-3 px-4 py-3 w-full text-left font-semibold text-sm rounded-lg transition-all text-primary border-l-4 border-primary bg-surface shadow-sm">
                 <span class="material-symbols-outlined">dashboard</span>
-                <span>Dashboard</span>
+                <span class="collapse-label">Dashboard</span>
             </button>
             <button onclick="app.navigate('registry')" class="nav-btn registry-btn flex items-center gap-3 px-4 py-3 w-full text-left text-secondary font-semibold text-sm hover:bg-surface-variant transition-all rounded-lg">
                 <span class="material-symbols-outlined">directions_car</span>
-                <span>Registry</span>
+                <span class="collapse-label">Registry</span>
             </button>
             <button onclick="app.navigate('reports')" class="nav-btn reports-btn flex items-center gap-3 px-4 py-3 w-full text-left text-secondary font-semibold text-sm hover:bg-surface-variant transition-all rounded-lg">
                 <span class="material-symbols-outlined">assessment</span>
-                <span>Reports</span>
+                <span class="collapse-label">Reports</span>
             </button>
         </div>
         <div class="mt-auto border-t border-outline-variant/20 pt-4 flex flex-col gap-2">
             <button onclick="app.openModal('modal-add-vehicle')" class="w-full bg-primary text-on-primary py-3 rounded-xl font-bold text-sm mb-2 shadow-md hover:opacity-90 transition-all flex justify-center items-center gap-2">
-                <span class="material-symbols-outlined text-sm">add</span> Add Vehicle
+                <span class="material-symbols-outlined text-sm">add</span>
+                <span class="collapse-label">Add Vehicle</span>
             </button>
         </div>
     </aside>
@@ -226,18 +321,18 @@
             <!-- Table -->
             <div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-outline-variant/10">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse min-w-[800px]">
-                        <thead>
+                    <table class="responsive-registry-table w-full text-left border-collapse">
+                        <thead class="hidden md:table-header-group">
                             <tr class="bg-surface-container-low border-b border-outline-variant/20">
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Vehicle Details</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Type</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Mileage</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Fuel</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Weekly Cash-In</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Balance</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Expenses</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary">Status</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-secondary text-right">Actions</th>
+                                <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Vehicle Details</th>
+                                <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Type</th>
+                                <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Mileage</th>
+                                <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Fuel</th>
+                                <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Weekly Cash-In</th>
+                                <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Balance</th>
+                                <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Expenses</th>
+                                <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Status</th>
+                                <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary text-right">Details</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-outline-variant/10" id="registry-tbody">
@@ -505,6 +600,47 @@
         </div>
     </div>
 
+    <!-- Edit Vehicle Details Modal -->
+    <div id="modal-edit-vehicle" class="modal-overlay fixed inset-0 bg-on-surface/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="modal-content bg-surface-container-lowest rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="px-6 py-4 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low">
+                <h3 class="font-bold font-headline text-lg text-primary">Edit Vehicle Details</h3>
+                <button onclick="app.closeModal('modal-edit-vehicle')" class="text-secondary hover:bg-surface-variant p-1 rounded-lg">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="form-edit-vehicle" onsubmit="app.saveVehicleDetails(event)" class="p-6 space-y-4">
+                <input type="hidden" id="ev-id">
+                <div>
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Make & Model</label>
+                    <input type="text" id="ev-name" required placeholder="e.g. Toyota Corolla" class="w-full px-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">License Plate</label>
+                        <input type="text" id="ev-plate" required placeholder="ABC 123" class="w-full px-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:border-primary outline-none uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Type</label>
+                        <select id="ev-type" class="w-full px-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:border-primary outline-none">
+                            <option value="Taxi">Taxi</option>
+                            <option value="Rental">Rental</option>
+                            <option value="Logistics">Logistics</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Fuel Level (%)</label>
+                    <input type="number" id="ev-fuel" required min="0" max="100" placeholder="0" class="w-full px-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:border-primary outline-none">
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="app.closeModal('modal-edit-vehicle')" class="flex-1 px-4 py-2 bg-surface-container-high text-on-surface font-bold rounded-lg hover:bg-surface-variant transition-colors">Cancel</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-primary text-white font-bold rounded-lg hover:opacity-90 transition-opacity">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toast-container"></div>
 
@@ -513,6 +649,7 @@
         const app = {
             state: {
                 currentView: 'dashboard',
+                sidebarCollapsed: false,
                 // Substantial sample data for reporting
                 vehicles: [
                     { id: 'v1', name: 'Mercedes-Benz E-Class', plate: 'K-TX 4052', type: 'Taxi', mileage: 42850, fuel: 82, status: 'Active', rev: 24500, costFuel: 6200, costMaint: 1150, expenses: 7350, weeklyCashIn: 450, balance: 3250 },
@@ -533,8 +670,20 @@
             },
 
             init() {
+                this.applySidebarState();
                 this.navigate('dashboard');
                 this.renderAll();
+            },
+
+            applySidebarState() {
+                document.body.classList.toggle('sidebar-collapsed', this.state.sidebarCollapsed);
+                const icon = document.getElementById('sidebar-toggle-icon');
+                if(icon) icon.innerText = this.state.sidebarCollapsed ? 'menu_open' : 'menu';
+            },
+
+            toggleSidebar() {
+                this.state.sidebarCollapsed = !this.state.sidebarCollapsed;
+                this.applySidebarState();
             },
 
             // Formatters
@@ -656,7 +805,7 @@
                     const hasWeeklyCashIn = v.weeklyCashIn !== undefined;
 
                     return `
-                    <tr class="hover:bg-surface-dim/30 transition-colors group">
+                    <tr onclick="app.openEditVehicle('${v.id}')" class="hover:bg-surface-dim/30 transition-colors group cursor-pointer">
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 bg-surface-container-high rounded-lg flex items-center justify-center text-primary">
@@ -668,14 +817,19 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-4 py-4">
                             <span class="${typeClass} px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider">${v.type}</span>
                         </td>
-                        <td class="px-6 py-4">
-                            <p class="text-sm font-bold text-on-surface">${this.formatNumber(v.mileage)} km</p>
+                        <td class="px-4 py-4">
+                            <span class="sm-label">Mileage</span>
+                            <span class="sm-value text-sm font-bold text-on-surface">${this.formatNumber(v.mileage)} km</span>
+                            <button onclick="event.stopPropagation(); app.openUpdateMileage('${v.id}')" class="mt-2 w-full sm:w-auto px-3 py-1.5 bg-surface-container text-primary text-[10px] font-bold rounded-lg hover:bg-primary-fixed transition-colors border border-outline-variant/20">
+                                Update km
+                            </button>
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="w-24">
+                        <td class="px-4 py-4">
+                            <span class="sm-label">Fuel</span>
+                            <div class="w-full max-w-[140px]">
                                 <div class="flex justify-between mb-1">
                                     <span class="text-[10px] font-bold ${v.fuel < 20 ? 'text-error' : 'text-secondary'}">${v.fuel}%</span>
                                 </div>
@@ -685,40 +839,46 @@
                             </div>
                         </td>
                         ${hasWeeklyCashIn ? `
-                        <td class="px-6 py-4">
+                        <td class="px-4 py-4">
+                            <span class="sm-label">Weekly Cash-In</span>
                             <p class="text-sm font-bold text-primary">${this.formatCurrency(v.weeklyCashIn)}</p>
+                            <button onclick="event.stopPropagation(); app.openUpdateCashIn('${v.id}')" class="mt-2 w-full sm:w-auto px-3 py-1.5 bg-surface-container text-primary text-[10px] font-bold rounded-lg hover:bg-primary hover:text-white transition-colors border border-outline-variant/20">
+                                Cash-In
+                            </button>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-4 py-4">
+                            <span class="sm-label">Balance</span>
                             <p class="text-sm font-bold text-on-surface">${this.formatCurrency(v.balance)}</p>
                         </td>
                         ` : `
-                        <td class="px-6 py-4 text-secondary text-xs">-</td>
-                        <td class="px-6 py-4 text-secondary text-xs">-</td>
-                        `}
-                        <td class="px-6 py-4">
-                            <p class="text-sm font-bold text-error">${this.formatCurrency(v.expenses || 0)}</p>
+                        <td class="px-4 py-4 text-secondary text-xs">
+                            <span class="sm-label">Weekly Cash-In</span>
+                            -
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-4 py-4 text-secondary text-xs">
+                            <span class="sm-label">Balance</span>
+                            -
+                        </td>
+                        `}
+                        <td class="px-4 py-4">
+                            <span class="sm-label">Expenses</span>
+                            <p class="text-sm font-bold text-error">${this.formatCurrency(v.expenses || 0)}</p>
+                            <button onclick="event.stopPropagation(); app.openUpdateExpenses('${v.id}')" class="mt-2 w-full sm:w-auto px-3 py-1.5 bg-surface-container text-error text-[10px] font-bold rounded-lg hover:bg-error hover:text-white transition-colors border border-outline-variant/20">
+                                Expenses
+                            </button>
+                        </td>
+                        <td class="px-4 py-4">
+                            <span class="sm-label">Status</span>
                             <div class="flex items-center gap-2">
                                 <span class="w-2 h-2 rounded-full ${statusColor}"></span>
                                 <span class="text-xs font-bold text-on-surface">${v.status}</span>
                             </div>
-                        </td>
-                        <td class="px-6 py-4 text-right flex gap-2 justify-end flex-wrap">
-                            <button onclick="app.openUpdateExpenses('${v.id}')" class="px-3 py-1.5 bg-surface-container text-error text-xs font-bold rounded-lg hover:bg-error hover:text-white transition-colors border border-outline-variant/20">
-                                Expenses
-                            </button>
-                            ${hasWeeklyCashIn ? `
-                            <button onclick="app.openUpdateCashIn('${v.id}')" class="px-3 py-1.5 bg-surface-container text-primary text-xs font-bold rounded-lg hover:bg-primary hover:text-white transition-colors border border-outline-variant/20">
-                                Cash-In
-                            </button>
-                            ` : ''}
-                            <button onclick="app.openUpdateStatus('${v.id}')" class="px-3 py-1.5 bg-surface-container text-on-surface text-xs font-bold rounded-lg hover:bg-surface-variant transition-colors border border-outline-variant/20">
+                            <button onclick="event.stopPropagation(); app.openUpdateStatus('${v.id}')" class="mt-2 w-full sm:w-auto px-3 py-1.5 bg-surface-container text-on-surface text-[10px] font-bold rounded-lg hover:bg-surface-variant transition-colors border border-outline-variant/20">
                                 Status
                             </button>
-                            <button onclick="app.openUpdateMileage('${v.id}')" class="px-3 py-1.5 bg-surface-container text-primary text-xs font-bold rounded-lg hover:bg-primary-fixed transition-colors border border-outline-variant/20">
-                                Update km
-                            </button>
+                        </td>
+                        <td class="px-4 py-4 text-right text-secondary text-xs">
+                            Tap row to open details
                         </td>
                     </tr>
                     `;
@@ -799,6 +959,9 @@
                 }
                 if(id === 'modal-update-expenses') {
                     document.getElementById('form-update-expenses').reset();
+                }
+                if(id === 'modal-edit-vehicle') {
+                    document.getElementById('form-edit-vehicle').reset();
                 }
             },
 
@@ -965,6 +1128,65 @@
                 this.renderDashboard();
                 this.renderReports();
                 this.showToast(`Expenses updated for ${vehicle.plate}.`);
+            },
+
+            openEditVehicle(id) {
+                const vehicle = this.state.vehicles.find(v => v.id === id);
+                if(!vehicle) return;
+
+                document.getElementById('ev-id').value = vehicle.id;
+                document.getElementById('ev-name').value = vehicle.name;
+                document.getElementById('ev-plate').value = vehicle.plate;
+                document.getElementById('ev-type').value = vehicle.type;
+                document.getElementById('ev-fuel').value = vehicle.fuel;
+                
+                this.openModal('modal-edit-vehicle');
+            },
+
+            saveVehicleDetails(e) {
+                e.preventDefault();
+                const id = document.getElementById('ev-id').value;
+                const vehicle = this.state.vehicles.find(v => v.id === id);
+                const newName = document.getElementById('ev-name').value;
+                const newPlate = document.getElementById('ev-plate').value.toUpperCase();
+                const newType = document.getElementById('ev-type').value;
+                const newFuel = parseInt(document.getElementById('ev-fuel').value);
+
+                const oldName = vehicle.name;
+                const oldPlate = vehicle.plate;
+                const oldType = vehicle.type;
+                const oldFuel = vehicle.fuel;
+
+                vehicle.name = newName;
+                vehicle.plate = newPlate;
+                vehicle.type = newType;
+                vehicle.fuel = newFuel;
+
+                // Auto-update status if fuel is low
+                if (newFuel < 20 && vehicle.status !== 'Maintenance') {
+                    vehicle.status = 'Low Fuel';
+                }
+
+                // Add cash-in tracking if type changed to Taxi/Rental
+                if ((newType === 'Taxi' || newType === 'Rental') && !vehicle.weeklyCashIn) {
+                    vehicle.weeklyCashIn = 0;
+                    vehicle.balance = 0;
+                }
+
+                // Remove cash-in tracking if type changed away from Taxi/Rental
+                if (newType === 'Logistics' && vehicle.weeklyCashIn !== undefined) {
+                    delete vehicle.weeklyCashIn;
+                    delete vehicle.balance;
+                }
+
+                this.state.activities.unshift({
+                    time: 'Just Now', car: newPlate, type: 'Vehicle Details Updated', status: 'Completed'
+                });
+
+                this.closeModal('modal-edit-vehicle');
+                this.renderRegistry();
+                this.renderDashboard();
+                this.showToast(`Details updated for ${newPlate}.`);
             },
 
             // Exports

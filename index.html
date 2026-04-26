@@ -762,10 +762,12 @@
                 if (this.state.isLoggedIn) {
                     userInfo.innerHTML = `
                         <div class="flex items-center gap-3">
-                            <button onclick="app.openModal('user-modal')" class="flex items-center gap-2 px-3 py-2 text-secondary hover:text-primary transition-colors bg-surface-container rounded-lg" title="User Management">
-                                <span class="material-symbols-outlined text-sm">manage_accounts</span>
-                                <span class="text-xs font-bold hidden sm:inline">Add User</span>
-                            </button>
+                            ${this.state.currentUser.role === 'admin' ? `
+                                <button onclick="app.openModal('user-modal')" class="flex items-center gap-2 px-3 py-2 text-secondary hover:text-primary transition-colors bg-surface-container rounded-lg" title="User Management">
+                                    <span class="material-symbols-outlined text-sm">manage_accounts</span>
+                                    <span class="text-xs font-bold hidden sm:inline">Add User</span>
+                                </button>
+                            ` : ''}
                             <button onclick="app.logout()" class="flex items-center gap-2 px-3 py-2 text-secondary hover:text-primary transition-colors bg-surface-container rounded-lg" title="Logout">
                                 <span class="material-symbols-outlined text-sm">logout</span>
                                 <span class="text-xs font-bold hidden sm:inline">Sign Out</span>

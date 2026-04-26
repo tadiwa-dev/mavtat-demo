@@ -62,8 +62,6 @@
     </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
-    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
     <style>
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -240,10 +238,6 @@
             <button onclick="app.openModal('modal-add-vehicle')" class="w-full bg-primary text-on-primary py-3 rounded-xl font-bold text-sm mb-2 shadow-md hover:opacity-90 transition-all flex justify-center items-center gap-2">
                 <span class="material-symbols-outlined text-sm">add</span>
                 <span class="collapse-label">Add Vehicle</span>
-            </button>
-            <button onclick="app.startTutorial()" class="w-full bg-surface-container text-primary py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-surface-variant transition-all flex justify-center items-center gap-2 mb-2">
-                <span class="material-symbols-outlined text-sm">auto_awesome</span>
-                <span class="collapse-label">Take a Tour</span>
             </button>
         </div>
     </aside>
@@ -1532,23 +1526,6 @@
                 toast.innerHTML = `<span class="material-symbols-outlined text-green-400 text-sm">check_circle</span> ${message}`;
                 container.appendChild(toast);
                 setTimeout(() => { toast.remove(); }, 3000);
-            },
-
-            startTutorial() {
-                const driver = window.driver.js.driver;
-                const driverObj = driver({
-                    showProgress: true,
-                    steps: [
-                        { element: 'aside', popover: { title: 'Welcome to MAVTAT', description: 'Your all-in-one fleet management command center. Let\'s show you around!', side: "right", align: 'start' }},
-                        { element: '#dashboard-stats', popover: { title: 'Fleet Overview', description: 'Monitor your entire fleet’s status and live revenue at a glance.', side: "bottom", align: 'center' }},
-                        { element: '#recent-activity-list', popover: { title: 'Recent Activity', description: 'Stay updated with every payment, maintenance record, and status change in real-time.', side: "top", align: 'start' }},
-                        { element: '.registry-btn', popover: { title: 'Vehicle Registry', description: 'Manage your assets here. You can add new vehicles, track mileage, and update fuel levels.', side: "right", align: 'center' }},
-                        { element: '.reports-btn', popover: { title: 'Financial Reports', description: 'Deep dive into your business health with automated revenue and maintenance summaries.', side: "right", align: 'center' }},
-                        { popover: { title: 'Ready to Go!', description: 'You’re all set to manage your fleet like a pro. Need help? Just click "Take a Tour" anytime!', side: "center", align: 'center' }}
-                    ]
-                });
-
-                driverObj.drive();
             }
         };
 

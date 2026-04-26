@@ -805,7 +805,7 @@
                         <div class="flex items-center justify-between p-4 bg-surface-container rounded-lg">
                             <div>
                                 <div class="font-semibold">${user.username}</div>
-                                <div class="text-sm text-secondary">Role: ${user.role} | Last login: ${user.last_login || 'Never'}</div>
+                                <div class="text-sm text-secondary">Role: ${user.role} | Last login: ${user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</div>
                             </div>
                             ${user.id !== this.state.currentUser.id ? `
                                 <button onclick="app.deleteUser(${user.id})" class="text-error hover:text-error/80 transition-colors">

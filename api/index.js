@@ -56,6 +56,13 @@ function requireAdmin(req, res, next) {
     next();
 }
 
+function requireWriteAccess(req, res, next) {
+    if (req.user.role === 'viewer') {
+        return res.status(403).json({ error: 'View-only access. You do not have permission to make changes.' });
+    }
+    next();
+}
+
 // Serve root files
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../index.html'));
@@ -126,7 +133,7 @@ app.get('/api/users', requireAuth, requireAdmin, async (req, res) => {
     res.json(users || []);
 });
 
-app.post('/api/users', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/users', requireAuth, requireAdmin, requireWriteAccess, async (req, res) => {
     const { username, password, role } = req.body;
 
     if (!username || !password) {
@@ -185,7 +192,7 @@ app.get('/api/vehicles/:id', requireAuth, async (req, res) => {
     res.json(vehicle);
 });
 
-app.post('/api/vehicles', requireAuth, async (req, res) => {
+app.post('/api/vehicles', requireAuth, requireWriteAccess, async (req, res) => {
     const { make, model, license_plate, type, mileage } = req.body;
 
     if (!make || !model || !license_plate || !type) {
@@ -205,7 +212,7 @@ app.post('/api/vehicles', requireAuth, async (req, res) => {
     res.status(201).json({ id: data.id, message: 'Vehicle created successfully' });
 });
 
-app.patch('/api/vehicles/:id', requireAuth, async (req, res) => {
+app.patch('/api/vehicles/:id', requireAuth, requireWriteAccess, async (req, res) => {
     const vehicleId = req.params.id;
     const { mileage, ...otherData } = req.body;
 
@@ -271,7 +278,7 @@ app.get('/api/maintenance', requireAuth, async (req, res) => {
     res.json(data || []);
 });
 
-app.post('/api/maintenance', requireAuth, async (req, res) => {
+app.post('/api/maintenance', requireAuth, requireWriteAccess, async (req, res) => {
     const { vehicle_id, service_type, cost, notes } = req.body;
     const { data, error } = await supabase
         .from('maintenance')
@@ -288,7 +295,7 @@ app.post('/api/maintenance', requireAuth, async (req, res) => {
 
 // ============= PAYMENT ENDPOINTS =============
 
-app.post('/api/payments', requireAuth, async (req, res) => {
+app.post('/api/payments', requireAuth, requireWriteAccess, async (req, res) => {
     const { vehicle_id, amount } = req.body;
     
     if (!vehicle_id || !amount) {

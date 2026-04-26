@@ -235,10 +235,12 @@
                 <span class="collapse-label">Reports</span>
             </button>
         </div>
-            <button onclick="app.openModal('modal-add-vehicle')" class="w-full bg-primary text-on-primary py-3 rounded-xl font-bold text-sm mb-2 shadow-md hover:opacity-90 transition-all flex justify-center items-center gap-2">
-                <span class="material-symbols-outlined text-sm">add</span>
-                <span class="collapse-label">Add Vehicle</span>
-            </button>
+            ${this.state.currentUser.role !== 'viewer' ? `
+                <button onclick="app.openModal('modal-add-vehicle')" class="w-full bg-primary text-on-primary py-3 rounded-xl font-bold text-sm mb-2 shadow-md hover:opacity-90 transition-all flex justify-center items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">add</span>
+                    <span class="collapse-label">Add Vehicle</span>
+                </button>
+            ` : ''}
         </div>
     </aside>
 
@@ -1004,9 +1006,11 @@
                         <td class="px-4 py-4">
                             <span class="sm-label">Mileage</span>
                             <span class="sm-value text-sm font-bold text-on-surface">${this.formatNumber(v.mileage)} km</span>
-                            <button onclick="event.stopPropagation(); app.openUpdateMileage('${v.id}')" class="mt-2 w-full sm:w-auto px-3 py-1.5 bg-surface-container text-primary text-[10px] font-bold rounded-lg hover:bg-primary-fixed transition-colors border border-outline-variant/20">
-                                Update km
-                            </button>
+                            ${this.state.currentUser.role !== 'viewer' ? `
+                                <button onclick="event.stopPropagation(); app.openUpdateMileage('${v.id}')" class="mt-2 w-full sm:w-auto px-3 py-1.5 bg-surface-container text-primary text-[10px] font-bold rounded-lg hover:bg-primary-fixed transition-colors border border-outline-variant/20">
+                                    Update km
+                                </button>
+                            ` : ''}
                         </td>
                         <td class="px-4 py-4">
                             <span class="sm-label">Fuel</span>
@@ -1023,9 +1027,11 @@
                         <td class="px-4 py-4">
                             <span class="sm-label">Weekly Cash-In</span>
                             <p class="text-sm font-bold text-primary">${this.formatCurrency(v.weeklyCashIn)}</p>
-                            <button onclick="event.stopPropagation(); app.openUpdateCashIn('${v.id}')" class="mt-2 w-full sm:w-auto px-3 py-1.5 bg-surface-container text-primary text-[10px] font-bold rounded-lg hover:bg-primary hover:text-white transition-colors border border-outline-variant/20">
-                                Cash-In
-                            </button>
+                            ${this.state.currentUser.role !== 'viewer' ? `
+                                <button onclick="event.stopPropagation(); app.openUpdateCashIn('${v.id}')" class="mt-2 w-full sm:w-auto px-3 py-1.5 bg-surface-container text-primary text-[10px] font-bold rounded-lg hover:bg-primary hover:text-white transition-colors border border-outline-variant/20">
+                                    Cash-In
+                                </button>
+                            ` : ''}
                         </td>
                         <td class="px-4 py-4">
                             <span class="sm-label">Balance</span>
@@ -1044,19 +1050,25 @@
                         <td class="px-4 py-4">
                             <span class="sm-label">Expenses</span>
                             <p class="text-sm font-bold text-error">${this.formatCurrency(v.expenses || 0)}</p>
-                            <button onclick="event.stopPropagation(); app.openUpdateExpenses('${v.id}')" class="mt-2 w-full sm:w-auto px-3 py-1.5 bg-surface-container text-error text-[10px] font-bold rounded-lg hover:bg-error hover:text-white transition-colors border border-outline-variant/20">
-                                Expenses
-                            </button>
+                            ${this.state.currentUser.role !== 'viewer' ? `
+                                <button onclick="event.stopPropagation(); app.openUpdateExpenses('${v.id}')" class="mt-2 w-full sm:w-auto px-3 py-1.5 bg-surface-container text-error text-[10px] font-bold rounded-lg hover:bg-error hover:text-white transition-colors border border-outline-variant/20">
+                                    Expenses
+                                </button>
+                            ` : ''}
                         </td>
                         <td class="px-4 py-4">
-                            <span class="sm-label">Status</span>
-                            <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full ${statusColor}"></span>
-                                <span class="text-xs font-bold text-on-surface">${v.status}</span>
+                            <div class="flex gap-2">
+                                ${this.state.currentUser.role !== 'viewer' ? `
+                                    <button onclick="event.stopPropagation(); app.openPaymentModal('${v.id}')" class="px-2 py-1 bg-green-500/10 text-green-600 rounded text-[10px] font-bold hover:bg-green-500 hover:text-white transition-all flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[12px]">payments</span>
+                                        Record Payment
+                                    </button>
+                                    <button onclick="event.stopPropagation(); app.openUpdateStatus('${v.id}')" class="px-2 py-1 bg-surface-container-high text-secondary rounded text-[10px] font-bold hover:bg-primary hover:text-white transition-all flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[12px]">edit</span>
+                                        Update
+                                    </button>
+                                ` : '<span class="text-xs text-secondary italic">View Only</span>'}
                             </div>
-                            <button onclick="event.stopPropagation(); app.openUpdateStatus('${v.id}')" class="mt-2 w-full sm:w-auto px-3 py-1.5 bg-surface-container text-on-surface text-[10px] font-bold rounded-lg hover:bg-surface-variant transition-colors border border-outline-variant/20">
-                                Status
-                            </button>
                         </td>
                         <td class="px-4 py-4 text-right text-secondary text-xs">
                             Tap row to open details
@@ -1626,8 +1638,9 @@
                     <label for="user-role" class="block text-sm font-semibold text-on-surface mb-2">Role</label>
                     <select id="user-role" name="role"
                             class="w-full px-4 py-3 border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all">
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
+                        <option value="user">Standard User</option>
+                        <option value="admin">Administrator</option>
+                        <option value="viewer">Viewer (Read-Only)</option>
                     </select>
                 </div>
 

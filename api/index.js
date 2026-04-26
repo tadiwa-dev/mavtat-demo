@@ -110,7 +110,9 @@ app.post('/api/auth/logout', async (req, res) => {
     res.json({ success: true });
 });
 
-app.get('/api/auth/me', requireAuth, (req, res) => {
+app.get('/api/auth/me', requireAuth, async (req, res) => {
+    // Update last_login in users table to reflect most recent activity
+    await supabase.from('users').update({ last_login: new Date().toISOString() }).eq('id', req.user.id);
     res.json({ user: req.user });
 });
 

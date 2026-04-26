@@ -235,12 +235,10 @@
                 <span class="collapse-label">Reports</span>
             </button>
         </div>
-            ${this.state.currentUser.role !== 'viewer' ? `
-                <button onclick="app.openModal('modal-add-vehicle')" class="w-full bg-primary text-on-primary py-3 rounded-xl font-bold text-sm mb-2 shadow-md hover:opacity-90 transition-all flex justify-center items-center gap-2">
-                    <span class="material-symbols-outlined text-sm">add</span>
-                    <span class="collapse-label">Add Vehicle</span>
-                </button>
-            ` : ''}
+            <button id="add-vehicle-sidebar-btn" onclick="app.openModal('modal-add-vehicle')" class="w-full bg-primary text-on-primary py-3 rounded-xl font-bold text-sm mb-2 shadow-md hover:opacity-90 transition-all flex justify-center items-center gap-2">
+                <span class="material-symbols-outlined text-sm">add</span>
+                <span class="collapse-label">Add Vehicle</span>
+            </button>
         </div>
     </aside>
 
@@ -782,6 +780,12 @@
                             </div>
                         </div>
                     `;
+
+                    // Hide Add Vehicle button for viewers
+                    const addVehicleBtn = document.getElementById('add-vehicle-sidebar-btn');
+                    if (addVehicleBtn) {
+                        addVehicleBtn.style.display = this.state.currentUser.role === 'viewer' ? 'none' : 'flex';
+                    }
                 } else {
                     userInfo.innerHTML = `
                         <div class="flex items-center gap-3">

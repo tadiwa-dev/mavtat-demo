@@ -142,9 +142,6 @@
         body.sidebar-collapsed .collapse-label {
             display: none;
         }
-        body.sidebar-collapsed aside > .text-xl {
-            display: none;
-        }
         body.sidebar-collapsed .nav-btn {
             text-align: center;
         }
@@ -215,7 +212,7 @@
         <div class="flex items-center justify-between mb-6 px-2">
             <div class="flex items-center gap-3">
                 <img src="/logo.png" alt="MAVTAT Logo" class="h-10 w-10 object-contain rounded-lg bg-white" />
-                <div class="text-xl font-black text-primary font-headline tracking-tight">MAVTAT Motors</div>
+                <div class="text-xl font-black text-primary font-headline tracking-tight collapse-label">MAVTAT Motors</div>
             </div>
             <button onclick="app.toggleSidebar()" class="flex items-center justify-center w-10 h-10 rounded-full bg-surface-container text-secondary hover:bg-surface-variant transition-colors" title="Toggle sidebar">
                 <span class="material-symbols-outlined" id="sidebar-toggle-icon">menu</span>

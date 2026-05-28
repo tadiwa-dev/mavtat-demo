@@ -203,6 +203,79 @@
                 display: none;
             }
         }
+
+        .tour-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            z-index: 60;
+        }
+
+        .tour-overlay.hidden {
+            display: none;
+        }
+
+        .tour-card {
+            width: min(100%, 760px);
+            background: #ffffffee;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            box-shadow: 0 40px 120px rgba(15, 23, 42, 0.25);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            color: #0f172a;
+        }
+
+        .tour-step-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: #475569;
+        }
+
+        .tour-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-top: 1.75rem;
+            flex-wrap: wrap;
+        }
+
+        .tour-btn {
+            min-width: 8rem;
+            padding: 0.85rem 1.25rem;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        .tour-btn.primary {
+            background: #1d4ed8;
+            color: white;
+        }
+
+        .tour-btn.secondary {
+            background: transparent;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+
+        .tour-btn.primary:hover {
+            background: #2563eb;
+        }
+
+        .tour-btn.secondary:hover {
+            background: rgba(148, 163, 184, 0.15);
+        }
+
+        .no-scroll {
+            overflow: hidden;
+        }
     </style>
 </head>
 <body class="bg-surface text-on-surface">
@@ -254,6 +327,25 @@
 
     <!-- Main Content -->
     <main class="pt-24 pb-24 md:pb-10 md:pl-72 px-4 md:px-8 min-h-screen">
+        <div id="tour-overlay" class="tour-overlay hidden">
+            <div class="tour-card">
+                <div class="flex justify-between items-start gap-4">
+                    <div>
+                        <p id="tour-step-label" class="tour-step-label">Step 1 of 4</p>
+                        <h2 id="tour-step-title" class="text-3xl font-black tracking-tight text-slate-950 mt-2">Welcome to MAVTAT</h2>
+                        <p id="tour-step-description" class="mt-4 text-slate-700 leading-7">Quickly learn how to move through the dashboard, registry, and reports sections. Use the buttons below to progress through the tour.</p>
+                        <p class="text-sm text-slate-500 mt-4">Tip: use the guided tour button in the top-right any time to replay this walkthrough.</p>
+                    </div>
+                    <button onclick="app.closeTour()" class="tour-btn secondary mt-1">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="tour-actions">
+                    <button id="tour-prev-btn" onclick="app.prevTourStep()" class="tour-btn secondary">Back</button>
+                    <button id="tour-next-btn" onclick="app.nextTourStep()" class="tour-btn primary">Next</button>
+                </div>
+            </div>
+        </div>
         
         <!-- ==================== DASHBOARD VIEW ==================== -->
         <section id="view-dashboard" class="view-section active">
@@ -670,16 +762,112 @@
                 isLoggedIn: false,
                 currentUser: null,
                 sessionTimeout: null,
+                tourStep: 0,
+                tourStarted: false,
                 // Data now loaded from backend
                 vehicles: [],
                 activities: []
             },
 
-            init() {
-                this.checkAuth();
+            tourSteps: [
+                {
+                    view: 'dashboard',
+                    title: 'Dashboard Overview',
+                    description: 'The Dashboard gives you a fast operational snapshot. Monitor total fleet size, active vehicles, maintenance status, and revenue at a glance.',
+                },
+                {
+                    view: 'dashboard',
+                    title: 'Recent Activity',
+                    description: 'Use the Recent Fleet Activity panel to see the latest updates and actions taken across your vehicles. This helps you stay on top of operations.',
+                },
+                {
+                    view: 'registry',
+                    title: 'Vehicle Registry',
+                    description: 'The Registry section lets you search, filter, and manage vehicles. Add new assets, update mileage, cash-in, expenses, or change status here.',
+                },
+                {
+                    view: 'reports',
+                    title: 'Financial Reports',
+                    description: 'Reports show revenue, expenses, and net profit across your fleet. Export CSV or PDF summaries for easy sharing and review.',
+                }
+            ],
+
+            async init() {
+                await this.checkAuth();
                 this.applySidebarState();
                 this.navigate('dashboard');
                 this.renderAll();
+                if (this.state.isLoggedIn) {
+                    this.startWalkthroughIfFirstTime();
+                }
+            },
+
+            hasTourBeenInitiated() {
+                return localStorage.getItem('mavtatTourInitiated') === 'true';
+            },
+
+            markTourInitiated() {
+                localStorage.setItem('mavtatTourInitiated', 'true');
+            },
+
+            startWalkthroughIfFirstTime() {
+                if (!this.hasTourBeenInitiated()) {
+                    this.markTourInitiated();
+                    this.startWalkthrough();
+                }
+            },
+
+            startWalkthrough(force = false) {
+                if (this.state.tourStarted && !force) return;
+                this.state.tourStarted = true;
+                this.state.tourStep = 0;
+                const overlay = document.getElementById('tour-overlay');
+                overlay.classList.remove('hidden');
+                document.body.classList.add('no-scroll');
+                this.renderTourStep();
+            },
+
+            renderTourStep() {
+                const step = this.tourSteps[this.state.tourStep];
+                if (!step) return;
+
+                if (step.view !== this.state.currentView) {
+                    this.navigate(step.view);
+                }
+
+                document.getElementById('tour-step-label').innerText = `Step ${this.state.tourStep + 1} of ${this.tourSteps.length}`;
+                document.getElementById('tour-step-title').innerText = step.title;
+                document.getElementById('tour-step-description').innerText = step.description;
+
+                const prevBtn = document.getElementById('tour-prev-btn');
+                const nextBtn = document.getElementById('tour-next-btn');
+                prevBtn.disabled = this.state.tourStep === 0;
+                prevBtn.classList.toggle('opacity-40', this.state.tourStep === 0);
+                prevBtn.classList.toggle('cursor-not-allowed', this.state.tourStep === 0);
+                nextBtn.innerText = this.state.tourStep === this.tourSteps.length - 1 ? 'Finish' : 'Next';
+            },
+
+            nextTourStep() {
+                if (this.state.tourStep < this.tourSteps.length - 1) {
+                    this.state.tourStep += 1;
+                    this.renderTourStep();
+                } else {
+                    this.closeTour();
+                }
+            },
+
+            prevTourStep() {
+                if (this.state.tourStep > 0) {
+                    this.state.tourStep -= 1;
+                    this.renderTourStep();
+                }
+            },
+
+            closeTour() {
+                const overlay = document.getElementById('tour-overlay');
+                overlay.classList.add('hidden');
+                document.body.classList.remove('no-scroll');
+                this.state.tourStarted = false;
             },
 
             // Authentication methods
@@ -765,6 +953,10 @@
                                     <span class="text-xs font-bold hidden sm:inline">Add User</span>
                                 </button>
                             ` : ''}
+                            <button onclick="app.startWalkthrough(true)" class="flex items-center gap-2 px-3 py-2 text-secondary hover:text-primary transition-colors bg-surface-container rounded-lg" title="Guided Tour">
+                                <span class="material-symbols-outlined text-sm">help</span>
+                                <span class="text-xs font-bold hidden sm:inline">Guided Tour</span>
+                            </button>
                             <button onclick="app.logout()" class="flex items-center gap-2 px-3 py-2 text-secondary hover:text-primary transition-colors bg-surface-container rounded-lg" title="Logout">
                                 <span class="material-symbols-outlined text-sm">logout</span>
                                 <span class="text-xs font-bold hidden sm:inline">Sign Out</span>

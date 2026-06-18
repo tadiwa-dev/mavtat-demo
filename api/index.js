@@ -215,7 +215,7 @@ app.post('/api/vehicles', requireAuth, requireWriteAccess, async (req, res) => {
 
 app.patch('/api/vehicles/:id', requireAuth, requireWriteAccess, async (req, res) => {
     const vehicleId = req.params.id;
-    const { mileage, ...otherData } = req.body;
+    const { mileage, actual_owner, ...otherData } = req.body;
 
     // If mileage is being updated, get the previous mileage first for the log
     if (mileage !== undefined) {
@@ -234,7 +234,13 @@ app.patch('/api/vehicles/:id', requireAuth, requireWriteAccess, async (req, res)
         }]);
     }
 
-    const updateData = { ...req.body, updated_at: new Date().toISOString() };
+    const updateData = { 
+        ...otherData,
+        ...(mileage !== undefined && { mileage }),
+        ...(actual_owner !== undefined && { actual_owner }),
+        updated_at: new Date().toISOString() 
+    };
+    
     const { error } = await supabase
         .from('vehicles')
         .update(updateData)

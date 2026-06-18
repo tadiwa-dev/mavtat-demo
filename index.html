@@ -402,9 +402,14 @@
         <section id="view-registry" class="view-section">
             <!-- Controls -->
             <div class="mb-6 flex flex-wrap items-center justify-between gap-4 bg-surface-container-low p-4 rounded-xl border border-outline-variant/10">
-                <div class="flex gap-2 w-full md:w-auto relative">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">search</span>
-                    <input type="text" id="search-registry" onkeyup="app.filterRegistry()" placeholder="Search vehicle or plate..." class="pl-9 pr-4 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-lg text-sm w-full md:w-64 focus:outline-none focus:border-primary">
+                <div class="flex gap-2 w-full md:w-auto flex-wrap md:flex-nowrap items-center">
+                    <div class="flex gap-2 w-full md:w-auto relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">search</span>
+                        <input type="text" id="search-registry" onkeyup="app.filterRegistry()" placeholder="Search vehicle or plate..." class="pl-9 pr-4 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-lg text-sm w-full md:w-64 focus:outline-none focus:border-primary">
+                    </div>
+                    <select id="filter-owner" onchange="app.filterRegistry()" class="px-4 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-lg text-sm focus:outline-none focus:border-primary">
+                        <option value="">All Owners</option>
+                    </select>
                 </div>
                 <div class="flex gap-2">
                     <button onclick="app.openModal('modal-add-vehicle')" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-sm">
@@ -421,6 +426,7 @@
                             <tr class="bg-surface-container-low border-b border-outline-variant/20">
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Vehicle Details</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Type</th>
+                                <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Owner</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Mileage</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Fuel</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary">Weekly Cash-In</th>
@@ -544,6 +550,11 @@
                 <div>
                     <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Initial Mileage (km)</label>
                     <input type="number" id="v-mileage" required min="0" placeholder="0" class="w-full px-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:border-primary outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Actual Owner</label>
+                    <input type="text" id="v-actual-owner" placeholder="e.g. John Smith, ABC Company" class="w-full px-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:border-primary outline-none">
+                    <p class="text-[10px] text-secondary mt-1">Internal tracking: who actually owns this vehicle</p>
                 </div>
                 <div class="pt-4 flex gap-3">
                     <button type="button" onclick="app.closeModal('modal-add-vehicle')" class="flex-1 px-4 py-2 bg-surface-container-high text-on-surface font-bold rounded-lg hover:bg-surface-variant transition-colors">Cancel</button>
@@ -799,6 +810,31 @@
                 this.renderAll();
                 if (this.state.isLoggedIn) {
                     this.startWalkthroughIfFirstTime();
+                    await this.loadUniqueOwners();
+                }
+            },
+
+            async loadUniqueOwners() {
+                try {
+                    const response = await fetch('/api/vehicles/owners/unique', {
+                        headers: {
+                            'Authorization': `Bearer ${this.state.sessionId}`
+                        }
+                    });
+                    if (response.ok) {
+                        const owners = await response.json();
+                        const selectOwner = document.getElementById('filter-owner');
+                        if (selectOwner) {
+                            owners.forEach(owner => {
+                                const option = document.createElement('option');
+                                option.value = owner;
+                                option.textContent = owner;
+                                selectOwner.appendChild(option);
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error loading owners:', err);
                 }
             },
 
@@ -1152,12 +1188,15 @@
                 document.getElementById('recent-activity-list').innerHTML = activityHtml;
             },
 
-            renderRegistry(filterText = '') {
+            renderRegistry(filterText = '', filterOwner = '') {
                 const tbody = document.getElementById('registry-tbody');
                 let filtered = this.state.vehicles;
                 if(filterText) {
                     const t = filterText.toLowerCase();
                     filtered = filtered.filter(v => v.name.toLowerCase().includes(t) || v.plate.toLowerCase().includes(t));
+                }
+                if(filterOwner) {
+                    filtered = filtered.filter(v => v.actual_owner === filterOwner);
                 }
 
                 document.getElementById('registry-count').innerText = `Showing ${filtered.length} vehicles`;
@@ -1195,6 +1234,10 @@
                         </td>
                         <td class="px-4 py-4">
                             <span class="${typeClass} px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider">${v.type}</span>
+                        </td>
+                        <td class="px-4 py-4">
+                            <span class="sm-label">Owner</span>
+                            <p class="text-sm font-bold text-on-surface">${v.actual_owner || '-'}</p>
                         </td>
                         <td class="px-4 py-4">
                             <span class="sm-label">Mileage</span>
@@ -1273,7 +1316,8 @@
 
             filterRegistry() {
                 const text = document.getElementById('search-registry').value;
-                this.renderRegistry(text);
+                const selectedOwner = document.getElementById('filter-owner').value;
+                this.renderRegistry(text, selectedOwner);
             },
 
             renderReports() {
@@ -1661,11 +1705,12 @@
             // Exports
             exportCSV() {
                 let csvContent = "data:text/csv;charset=utf-8,";
-                csvContent += "Asset,Plate,Type,Revenue,Expenses,Net Profit\r\n";
+                csvContent += "Asset,Plate,Type,Owner,Revenue,Expenses,Net Profit\r\n";
 
                 this.state.vehicles.forEach(v => {
                     const profit = v.rev - (v.expenses || 0);
-                    const row = `"${v.name}","${v.plate}","${v.type}",${v.rev},${v.expenses || 0},${profit}`;
+                    const owner = v.actual_owner || 'N/A';
+                    const row = `"${v.name}","${v.plate}","${v.type}","${owner}",${v.rev},${v.expenses || 0},${profit}`;
                     csvContent += row + "\r\n";
                 });
 
@@ -1695,9 +1740,11 @@
 
                     const tableData = this.state.vehicles.map(v => {
                         const profit = v.rev - (v.expenses || 0);
+                        const owner = v.actual_owner || 'N/A';
                         return [
                             `${v.name}\n(${v.plate})`,
                             v.type,
+                            owner,
                             this.formatCurrency(v.rev),
                             this.formatCurrency(v.expenses || 0),
                             this.formatCurrency(profit)
@@ -1706,15 +1753,15 @@
 
                     doc.autoTable({
                         startY: 40,
-                        head: [['Asset Details', 'Type', 'Revenue', 'Expenses', 'Net Profit']],
+                        head: [['Asset Details', 'Type', 'Owner', 'Revenue', 'Expenses', 'Net Profit']],
                         body: tableData,
                         theme: 'striped',
                         headStyles: { fillColor: [0, 64, 161] },
                         styles: { fontSize: 9, cellPadding: 4 },
                         columnStyles: {
-                            2: { halign: 'right' },
                             3: { halign: 'right' },
-                            4: { halign: 'right', fontStyle: 'bold' }
+                            4: { halign: 'right' },
+                            5: { halign: 'right', fontStyle: 'bold' }
                         }
                     });
 

@@ -96,6 +96,7 @@ app.addVehicle = async function(e) {
     const license_plate = document.getElementById('v-plate').value.toUpperCase();
     const type = document.getElementById('v-type').value.toLowerCase();
     const mileage = parseInt(document.getElementById('v-mileage').value);
+    const actual_owner = document.getElementById('v-actual-owner').value.trim() || null;
 
     try {
         // Save to backend
@@ -104,7 +105,8 @@ app.addVehicle = async function(e) {
             model: model || 'Unknown',
             license_plate,
             type,
-            mileage
+            mileage,
+            actual_owner
         });
 
         // Reload vehicles
@@ -117,6 +119,7 @@ app.addVehicle = async function(e) {
             mileage: v.mileage || 0,
             fuel: v.fuel_level || 100,
             status: v.status.charAt(0).toUpperCase() + v.status.replace(/_/g, ' ').slice(1),
+            actual_owner: v.actual_owner || 'N/A',
             rev: 0,
             expenses: 0,
             ...(v.type === 'taxi' || v.type === 'rental' ? { weeklyCashIn: 0, balance: 0 } : {})

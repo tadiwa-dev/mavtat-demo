@@ -168,11 +168,12 @@ app.delete('/api/users/:id', requireAuth, requireAdmin, async (req, res) => {
 // ============= VEHICLES ENDPOINTS =============
 
 app.get('/api/vehicles', requireAuth, async (req, res) => {
-    const { status, type } = req.query;
+    const { status, type, actual_owner } = req.query;
     let query = supabase.from('vehicles').select('*');
 
     if (status) query = query.eq('status', status);
     if (type) query = query.eq('type', type);
+    if (actual_owner) query = query.eq('actual_owner', actual_owner);
 
     const { data: vehicles, error } = await query.order('created_at', { ascending: false });
 
@@ -193,7 +194,7 @@ app.get('/api/vehicles/:id', requireAuth, async (req, res) => {
 });
 
 app.post('/api/vehicles', requireAuth, requireWriteAccess, async (req, res) => {
-    const { make, model, license_plate, type, mileage } = req.body;
+    const { make, model, license_plate, type, mileage, actual_owner } = req.body;
 
     if (!make || !model || !license_plate || !type) {
         return res.status(400).json({ error: 'Missing required fields' });
@@ -201,7 +202,7 @@ app.post('/api/vehicles', requireAuth, requireWriteAccess, async (req, res) => {
 
     const { data, error } = await supabase
         .from('vehicles')
-        .insert([{ make, model, license_plate, type, mileage: mileage || 0 }])
+        .insert([{ make, model, license_plate, type, mileage: mileage || 0, actual_owner: actual_owner || null }])
         .select()
         .single();
 
@@ -253,6 +254,22 @@ app.delete('/api/vehicles/:id', requireAuth, requireAdmin, async (req, res) => {
         return res.status(400).json({ error: error.message });
     }
     res.json({ success: true, message: 'Vehicle deleted successfully' });
+});
+
+app.get('/api/vehicles/owners/unique', requireAuth, async (req, res) => {
+    const { data: vehicles, error } = await supabase
+        .from('vehicles')
+        .select('actual_owner')
+        .not('actual_owner', 'is', null);
+
+    if (error) {
+        console.error('❌ Supabase Error:', error);
+        return res.status(500).json({ error: error.message });
+    }
+
+    // Extract unique owners and sort them
+    const uniqueOwners = [...new Set(vehicles.map(v => v.actual_owner).filter(Boolean))].sort();
+    res.json(uniqueOwners);
 });
 
 // ============= MAINTENANCE ENDPOINTS =============

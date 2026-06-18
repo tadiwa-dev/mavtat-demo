@@ -73,6 +73,10 @@ app.init = async function() {
     this.applySidebarState();
     this.navigate('dashboard');
     this.renderAll();
+    if (this.state.isLoggedIn) {
+        this.startWalkthroughIfFirstTime();
+        await this.loadUniqueOwners();
+    }
 };
 
 // Helper for relative time formatting
@@ -128,6 +132,7 @@ app.addVehicle = async function(e) {
 
         this.closeModal('modal-add-vehicle');
         this.renderAll();
+        await this.loadUniqueOwners();
         this.showToast(`${make} ${model} added to registry.`);
     } catch (error) {
         console.error('Error adding vehicle:', error);

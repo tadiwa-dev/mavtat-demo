@@ -516,10 +516,20 @@ app.get('/health', (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`\n🚀 MAVTAT Motors Cloud API Server`);
     console.log(`📍 Running on http://localhost:${PORT}`);
     console.log(`☁️ Connected to Supabase\n`);
+}).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        const nextPort = Number(PORT) + 1;
+        console.log(`⚠️ Port ${PORT} is busy, trying ${nextPort}...`);
+        app.listen(nextPort, () => {
+            console.log(`📍 Running on http://localhost:${nextPort}`);
+        });
+    } else {
+        console.error('Server error:', err);
+    }
 });
 
 // For Vercel Deployment

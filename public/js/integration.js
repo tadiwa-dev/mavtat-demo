@@ -34,6 +34,7 @@ app.init = async function() {
             mileage: v.mileage || 0,
             fuel: v.fuel_level || 100,
             status: v.status.charAt(0).toUpperCase() + v.status.replace(/_/g, ' ').slice(1), // Capitalize and replace underscores
+            actual_owner: v.actual_owner || 'N/A',
             rev: 0, // Will be calculated from reports
             expenses: 0, // Will be calculated from maintenance
             // Add cash-in tracking for taxis and rentals

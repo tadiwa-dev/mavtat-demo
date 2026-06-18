@@ -745,6 +745,10 @@
                     <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Fuel Level (%)</label>
                     <input type="number" id="ev-fuel" required min="0" max="100" placeholder="0" class="w-full px-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:border-primary outline-none">
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Actual Owner</label>
+                    <input type="text" id="ev-owner" placeholder="e.g. John Smith, ABC Company" class="w-full px-4 py-2 bg-surface border border-outline-variant/50 rounded-lg text-sm focus:border-primary outline-none">
+                </div>
                 <div class="pt-4 flex flex-col gap-3">
                     <div class="flex gap-3">
                         <button type="button" onclick="app.closeModal('modal-edit-vehicle')" class="flex-1 px-4 py-2 bg-surface-container-high text-on-surface font-bold rounded-lg hover:bg-surface-variant transition-colors">Cancel</button>
@@ -1612,6 +1616,7 @@
                 document.getElementById('ev-plate').value = vehicle.plate;
                 document.getElementById('ev-type').value = vehicle.type;
                 document.getElementById('ev-fuel').value = vehicle.fuel;
+                document.getElementById('ev-owner').value = vehicle.actual_owner || '';
                 
                 // Show/Hide delete button based on admin role
                 const deleteContainer = document.getElementById('delete-vehicle-container');
@@ -1668,6 +1673,7 @@
                 const newPlate = document.getElementById('ev-plate').value.toUpperCase();
                 const newType = document.getElementById('ev-type').value;
                 const newFuel = parseInt(document.getElementById('ev-fuel').value);
+                const newOwner = document.getElementById('ev-owner').value.trim() || null;
 
                 try {
                     // Persist to backend
@@ -1676,13 +1682,15 @@
                         model: newName.split(' ').slice(1).join(' ') || 'Unknown',
                         license_plate: newPlate,
                         type: newType.toLowerCase(),
-                        fuel_level: newFuel
+                        fuel_level: newFuel,
+                        actual_owner: newOwner
                     });
 
                     vehicle.name = newName;
                     vehicle.plate = newPlate;
                     vehicle.type = newType;
                     vehicle.fuel = newFuel;
+                    vehicle.actual_owner = newOwner || 'N/A';
 
                     if (newFuel < 20 && vehicle.status !== 'Maintenance') {
                         vehicle.status = 'Low Fuel';
@@ -1695,6 +1703,7 @@
                     this.closeModal('modal-edit-vehicle');
                     this.renderRegistry();
                     this.renderDashboard();
+                    await this.loadUniqueOwners();
                     this.showToast(`Details updated for ${newPlate}.`);
                 } catch (error) {
                     console.error('Error saving vehicle details:', error);

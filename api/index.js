@@ -215,7 +215,7 @@ app.post('/api/vehicles', requireAuth, requireWriteAccess, async (req, res) => {
 
 app.patch('/api/vehicles/:id', requireAuth, requireWriteAccess, async (req, res) => {
     const vehicleId = req.params.id;
-    const { mileage, actual_owner, ...otherData } = req.body;
+    const { mileage, actual_owner, fuel_level, status, make, model, license_plate, type } = req.body;
 
     // If mileage is being updated, get the previous mileage first for the log
     if (mileage !== undefined) {
@@ -234,12 +234,17 @@ app.patch('/api/vehicles/:id', requireAuth, requireWriteAccess, async (req, res)
         }]);
     }
 
-    const updateData = { 
-        ...otherData,
-        ...(mileage !== undefined && { mileage }),
-        ...(actual_owner !== undefined && { actual_owner }),
-        updated_at: new Date().toISOString() 
-    };
+    // Build update object with only allowed fields
+    const updateData = { updated_at: new Date().toISOString() };
+    
+    if (mileage !== undefined) updateData.mileage = mileage;
+    if (fuel_level !== undefined) updateData.fuel_level = fuel_level;
+    if (status !== undefined) updateData.status = status;
+    if (make !== undefined) updateData.make = make;
+    if (model !== undefined) updateData.model = model;
+    if (license_plate !== undefined) updateData.license_plate = license_plate;
+    if (type !== undefined) updateData.type = type;
+    if (actual_owner !== undefined) updateData.actual_owner = actual_owner;
     
     const { error } = await supabase
         .from('vehicles')
@@ -247,8 +252,9 @@ app.patch('/api/vehicles/:id', requireAuth, requireWriteAccess, async (req, res)
         .eq('id', vehicleId);
 
     if (error) {
-        console.error('❌ Supabase Error:', error);
-        return res.status(400).json({ error: error.message });
+        console.error('❌ Supabase Error:', error.message || error);
+        console.error('Update Data:', updateData);
+        return res.status(400).json({ error: error.message || 'Update failed' });
     }
     res.json({ success: true, message: 'Vehicle updated successfully' });
 });

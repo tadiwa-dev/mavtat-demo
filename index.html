@@ -152,10 +152,24 @@
         .responsive-registry-table {
             width: 100%;
             border-collapse: collapse;
+            font-size: 0.875rem;
         }
         .responsive-registry-table td,
         .responsive-registry-table th {
             word-break: break-word;
+            padding: 0.75rem 0.5rem !important;
+        }
+        .responsive-registry-table th {
+            padding: 0.5rem !important;
+        }
+        /* Hide non-essential columns on screens under 1400px */
+        @media (max-width: 1399px) {
+            .responsive-registry-table thead th:nth-child(6),
+            .responsive-registry-table thead th:nth-child(7),
+            .responsive-registry-table tbody td:nth-child(6),
+            .responsive-registry-table tbody td:nth-child(7) {
+                display: none;
+            }
         }
         @media (max-width: 1023px) {
             .responsive-registry-table thead {
@@ -170,12 +184,12 @@
             .responsive-registry-table tbody td {
                 display: block;
                 width: 100%;
-                padding: 0.75rem 0;
+                padding: 0.5rem 0 !important;
                 border: none;
             }
             .responsive-registry-table tbody td .sm-label {
                 display: block;
-                margin-bottom: 0.35rem;
+                margin-bottom: 0.25rem;
                 color: #6b7280;
                 font-size: 0.65rem;
                 font-weight: 700;
@@ -184,6 +198,7 @@
             }
             .responsive-registry-table tbody td .sm-value {
                 display: block;
+                font-size: 0.9rem;
             }
             .responsive-registry-table tbody td.actions {
                 display: flex;
@@ -828,41 +843,39 @@
 
             async loadUniqueOwners() {
                 try {
-                    const response = await fetch('/api/vehicles/owners/unique', {
-                        headers: {
-                            'Authorization': `Bearer ${this.state.sessionId}`
+                    // Extract unique owners from loaded vehicles
+                    const owners = [...new Set(this.state.vehicles
+                        .map(v => v.actual_owner)
+                        .filter(owner => owner && owner !== 'N/A')
+                    )].sort();
+                    
+                    // Update registry filter
+                    const selectOwner = document.getElementById('filter-owner');
+                    if (selectOwner) {
+                        // Clear all options except the first one
+                        while (selectOwner.options.length > 1) {
+                            selectOwner.remove(1);
                         }
-                    });
-                    if (response.ok) {
-                        const owners = await response.json();
-                        // Update registry filter
-                        const selectOwner = document.getElementById('filter-owner');
-                        if (selectOwner) {
-                            // Clear all options except the first one
-                            while (selectOwner.options.length > 1) {
-                                selectOwner.remove(1);
-                            }
-                            // Add owner options
-                            owners.forEach(owner => {
-                                const option = document.createElement('option');
-                                option.value = owner;
-                                option.textContent = owner;
-                                selectOwner.appendChild(option);
-                            });
+                        // Add owner options
+                        owners.forEach(owner => {
+                            const option = document.createElement('option');
+                            option.value = owner;
+                            option.textContent = owner;
+                            selectOwner.appendChild(option);
+                        });
+                    }
+                    // Update reports filter
+                    const selectReportOwner = document.getElementById('filter-report-owner');
+                    if (selectReportOwner) {
+                        while (selectReportOwner.options.length > 1) {
+                            selectReportOwner.remove(1);
                         }
-                        // Update reports filter
-                        const selectReportOwner = document.getElementById('filter-report-owner');
-                        if (selectReportOwner) {
-                            while (selectReportOwner.options.length > 1) {
-                                selectReportOwner.remove(1);
-                            }
-                            owners.forEach(owner => {
-                                const option = document.createElement('option');
-                                option.value = owner;
-                                option.textContent = owner;
-                                selectReportOwner.appendChild(option);
-                            });
-                        }
+                        owners.forEach(owner => {
+                            const option = document.createElement('option');
+                            option.value = owner;
+                            option.textContent = owner;
+                            selectReportOwner.appendChild(option);
+                        });
                     }
                 } catch (err) {
                     console.error('Error loading owners:', err);

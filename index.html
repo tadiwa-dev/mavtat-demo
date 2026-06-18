@@ -455,6 +455,9 @@
                     <p class="text-sm text-secondary font-medium">Revenue, costs, and profit analytics.</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
+                    <select id="filter-report-owner" onchange="app.renderReports()" class="px-4 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-lg text-sm focus:outline-none focus:border-primary">
+                        <option value="">All Owners</option>
+                    </select>
                     <button onclick="app.exportCSV()" class="flex items-center gap-2 bg-surface-container-highest text-primary px-4 py-2 rounded-lg font-bold text-sm transition-all hover:bg-surface-dim">
                         <span class="material-symbols-outlined text-sm">grid_on</span> Excel (CSV)
                     </button>
@@ -832,13 +835,32 @@
                     });
                     if (response.ok) {
                         const owners = await response.json();
+                        // Update registry filter
                         const selectOwner = document.getElementById('filter-owner');
                         if (selectOwner) {
+                            // Clear all options except the first one
+                            while (selectOwner.options.length > 1) {
+                                selectOwner.remove(1);
+                            }
+                            // Add owner options
                             owners.forEach(owner => {
                                 const option = document.createElement('option');
                                 option.value = owner;
                                 option.textContent = owner;
                                 selectOwner.appendChild(option);
+                            });
+                        }
+                        // Update reports filter
+                        const selectReportOwner = document.getElementById('filter-report-owner');
+                        if (selectReportOwner) {
+                            while (selectReportOwner.options.length > 1) {
+                                selectReportOwner.remove(1);
+                            }
+                            owners.forEach(owner => {
+                                const option = document.createElement('option');
+                                option.value = owner;
+                                option.textContent = owner;
+                                selectReportOwner.appendChild(option);
                             });
                         }
                     }
@@ -1330,8 +1352,14 @@
             },
 
             renderReports() {
-                const totalRev = this.state.vehicles.reduce((s, v) => s + v.rev, 0);
-                const totalExpenses = this.state.vehicles.reduce((s, v) => s + (v.expenses || 0), 0);
+                const selectedOwner = document.getElementById('filter-report-owner').value;
+                let vehicles = this.state.vehicles;
+                if (selectedOwner) {
+                    vehicles = vehicles.filter(v => v.actual_owner === selectedOwner);
+                }
+
+                const totalRev = vehicles.reduce((s, v) => s + v.rev, 0);
+                const totalExpenses = vehicles.reduce((s, v) => s + (v.expenses || 0), 0);
                 const netProfit = totalRev - totalExpenses;
 
                 document.getElementById('report-stats').innerHTML = `
@@ -1350,7 +1378,7 @@
                 `;
 
                 const tbody = document.getElementById('reports-tbody');
-                tbody.innerHTML = this.state.vehicles.map(v => {
+                tbody.innerHTML = vehicles.map(v => {
                     const profit = v.rev - (v.expenses || 0);
                     return `
                         <tr class="hover:bg-surface-dim/30">
@@ -1723,7 +1751,13 @@
                 let csvContent = "data:text/csv;charset=utf-8,";
                 csvContent += "Asset,Plate,Type,Owner,Revenue,Expenses,Net Profit\r\n";
 
-                this.state.vehicles.forEach(v => {
+                const selectedOwner = document.getElementById('filter-report-owner').value;
+                let vehicles = this.state.vehicles;
+                if (selectedOwner) {
+                    vehicles = vehicles.filter(v => v.actual_owner === selectedOwner);
+                }
+
+                vehicles.forEach(v => {
                     const profit = v.rev - (v.expenses || 0);
                     const owner = v.actual_owner || 'N/A';
                     const row = `"${v.name}","${v.plate}","${v.type}","${owner}",${v.rev},${v.expenses || 0},${profit}`;
@@ -1752,9 +1786,16 @@
                     
                     doc.setFontSize(10);
                     doc.setTextColor(100);
-                    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
+                    const selectedOwner = document.getElementById('filter-report-owner').value;
+                    const ownerText = selectedOwner ? ` - ${selectedOwner}` : '';
+                    doc.text(`Generated: ${new Date().toLocaleString()}${ownerText}`, 14, 30);
 
-                    const tableData = this.state.vehicles.map(v => {
+                    let vehicles = this.state.vehicles;
+                    if (selectedOwner) {
+                        vehicles = vehicles.filter(v => v.actual_owner === selectedOwner);
+                    }
+
+                    const tableData = vehicles.map(v => {
                         const profit = v.rev - (v.expenses || 0);
                         const owner = v.actual_owner || 'N/A';
                         return [

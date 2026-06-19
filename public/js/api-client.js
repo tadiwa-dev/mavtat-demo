@@ -118,9 +118,6 @@ const API = {
         updateStatus: async (id, status) => {
             return API.vehicles.update(id, { status });
         },
-        updateMileage: async (id, mileage) => {
-            return API.vehicles.update(id, { mileage });
-        },
         updateFuel: async (id, fuel_level) => {
             return API.vehicles.update(id, { fuel_level });
         }

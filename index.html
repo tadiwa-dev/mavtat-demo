@@ -511,7 +511,6 @@
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Vehicle Details</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Type</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Owner</th>
-                                <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Mileage</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Fuel</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Weekly Cash-In</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Balance</th>
@@ -566,7 +565,6 @@
                         <thead>
                             <tr class="bg-slate-50/80 border-b border-slate-200/60">
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Asset</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Total Distance</th>
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Revenue</th>
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Expenses</th>
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Net Profit</th>
@@ -634,10 +632,7 @@
                         </select>
                     </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Initial Mileage (km)</label>
-                    <input type="number" id="v-mileage" required min="0" placeholder="0" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none">
-                </div>
+
                 <div>
                     <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Actual Owner</label>
                     <input type="text" id="v-actual-owner" placeholder="e.g. John Smith, ABC Company" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none">
@@ -651,40 +646,7 @@
         </div>
     </div>
 
-    <!-- Update Mileage Modal -->
-    <div id="modal-update-mileage" class="modal-overlay fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-        <div class="modal-content bg-white rounded-2xl shadow-elevated w-full max-w-sm overflow-hidden border border-slate-200/60">
-            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
-                <h3 class="font-bold font-headline text-lg text-on-surface">Update Mileage</h3>
-                <button onclick="app.closeModal('modal-update-mileage')" class="text-slate-400 hover:bg-slate-100 p-1.5 rounded-xl transition-all">
-                    <span class="material-symbols-outlined text-[20px]">close</span>
-                </button>
-            </div>
-            <form id="form-update-mileage" onsubmit="app.saveMileage(event)" class="p-6 space-y-4">
-                <input type="hidden" id="um-id">
-                <div class="bg-slate-50 p-3 rounded-xl flex items-center gap-3 mb-2">
-                    <span class="material-symbols-outlined text-on-surface">directions_car</span>
-                    <div>
-                        <p class="font-bold text-sm" id="um-name">Vehicle Name</p>
-                        <p class="text-xs text-secondary" id="um-plate">Plate</p>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Current Mileage</label>
-                    <input type="text" id="um-current" disabled class="w-full px-4 py-2 bg-surface-container border border-transparent rounded-lg text-sm text-secondary font-medium">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">New Mileage (km)</label>
-                    <input type="number" id="um-new" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none text-primary font-bold text-lg">
-                    <p class="text-[10px] text-error mt-1 hidden" id="um-error">New mileage must be higher than current.</p>
-                </div>
-                <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="app.closeModal('modal-update-mileage')" class="flex-1 px-4 py-2 bg-surface-container-high text-on-surface font-bold rounded-xl hover:bg-surface-variant">Cancel</button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-gradient-to-r from-primary to-indigo-500 text-white font-bold rounded-xl hover:shadow-lg transition-all">Update</button>
-                </div>
-            </form>
-        </div>
-    </div>
+
 
     <!-- Update Status Modal -->
     <div id="modal-update-status" class="modal-overlay fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -890,7 +852,7 @@
                 {
                     view: 'registry',
                     title: 'Vehicle Registry',
-                    description: 'The Registry section lets you search, filter, and manage vehicles. Add new assets, update mileage, cash-in, expenses, or change status here.',
+                    description: 'The Registry section lets you search, filter, and manage vehicles. Add new assets, cash-in, expenses, or change status here.',
                 },
                 {
                     view: 'reports',
@@ -1435,15 +1397,7 @@
                             <span class="sm-label">Owner</span>
                             <p class="text-sm font-bold text-slate-700">${v.actual_owner || '-'}</p>
                         </td>
-                        <td class="px-4 py-4">
-                            <span class="sm-label">Mileage</span>
-                            <span class="sm-value text-sm font-bold text-slate-800">${this.formatNumber(v.mileage)} km</span>
-                            ${this.state.currentUser.role !== 'viewer' ? `
-                                <button onclick="event.stopPropagation(); app.openUpdateMileage('${v.id}')" class="mt-2 inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 border border-slate-200/80 text-slate-600 hover:bg-primary-light hover:text-primary hover:border-primary/20 rounded-lg text-[10px] font-bold transition-all shadow-sm">
-                                    <span class="material-symbols-outlined text-[12px]">speed</span> Update km
-                                </button>
-                            ` : ''}
-                        </td>
+
                         <td class="px-4 py-4">
                             <span class="sm-label">Fuel</span>
                             <div class="w-full max-w-[140px]">
@@ -1565,7 +1519,6 @@
                                 <div class="font-bold text-sm text-slate-800">${v.name}</div>
                                 <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">${v.plate}</div>
                             </td>
-                            <td class="px-6 py-4 text-sm font-bold text-slate-700 text-center">${app.formatNumber(v.distanceDriven || 0)} km</td>
                             <td class="px-6 py-4 text-right font-semibold text-slate-800">${this.formatCurrency(v.rev)}</td>
                             <td class="px-6 py-4 text-right text-rose-600 font-medium">${this.formatCurrency(v.expenses || 0)}</td>
                             <td class="px-6 py-4 text-right">
@@ -1580,7 +1533,6 @@
                 document.getElementById('reports-tfoot').innerHTML = `
                     <tr class="bg-slate-50 border-t border-slate-200">
                         <td class="px-6 py-4 uppercase text-[10px] tracking-widest text-slate-500 font-bold">Total</td>
-                        <td class="px-6 py-4"></td>
                         <td class="px-6 py-4 text-right text-lg font-black text-slate-800">${this.formatCurrency(totalRev)}</td>
                         <td class="px-6 py-4 text-right text-rose-600 font-black text-sm">${this.formatCurrency(totalExpenses)}</td>
                         <td class="px-6 py-4 text-right text-primary text-lg font-black">${this.formatCurrency(netProfit)}</td>
@@ -1595,10 +1547,7 @@
             closeModal(id) {
                 document.getElementById(id).classList.remove('open');
                 if(id === 'modal-add-vehicle') document.getElementById('form-add-vehicle').reset();
-                if(id === 'modal-update-mileage') {
-                    document.getElementById('form-update-mileage').reset();
-                    document.getElementById('um-error').classList.add('hidden');
-                }
+
                 if(id === 'modal-update-status') {
                     document.getElementById('form-update-status').reset();
                 }
@@ -1618,11 +1567,10 @@
                 const name = document.getElementById('v-name').value;
                 const plate = document.getElementById('v-plate').value.toUpperCase();
                 const type = document.getElementById('v-type').value;
-                const mileage = parseInt(document.getElementById('v-mileage').value);
 
                 const newCar = {
                     id: 'v' + Date.now(),
-                    name, plate, type, mileage, fuel: 100, status: 'Available',
+                    name, plate, type, mileage: 0, fuel: 100, status: 'Available',
                     rev: 0, expenses: 0
                 };
 
@@ -1643,21 +1591,6 @@
                 this.renderAll();
                 this.showToast(`${name} added to registry.`);
             },
-
-            openUpdateMileage(id) {
-                const vehicle = this.state.vehicles.find(v => v.id == id);
-                if(!vehicle) return;
-
-                document.getElementById('um-id').value = vehicle.id;
-                document.getElementById('um-name').innerText = vehicle.name;
-                document.getElementById('um-plate').innerText = vehicle.plate;
-                document.getElementById('um-current').value = this.formatNumber(vehicle.mileage) + ' km';
-                document.getElementById('um-new').min = vehicle.mileage;
-                document.getElementById('um-new').value = '';
-                
-                this.openModal('modal-update-mileage');
-            },
-
             openUpdateStatus(id) {
                 const vehicle = this.state.vehicles.find(v => v.id == id);
                 if(!vehicle) return;
@@ -1669,28 +1602,6 @@
                 document.getElementById('us-new').value = vehicle.status;
                 
                 this.openModal('modal-update-status');
-            },
-
-            saveMileage(e) {
-                e.preventDefault();
-                const id = document.getElementById('um-id').value;
-                const vehicle = this.state.vehicles.find(v => v.id == id);
-                const newMileage = parseInt(document.getElementById('um-new').value);
-
-                if (newMileage <= vehicle.mileage) {
-                    document.getElementById('um-error').classList.remove('hidden');
-                    return;
-                }
-
-                vehicle.mileage = newMileage;
-                
-                this.state.activities.unshift({
-                    time: 'Just Now', car: vehicle.plate, type: 'Mileage Updated', status: 'Completed'
-                });
-
-                this.closeModal('modal-update-mileage');
-                this.renderRegistry();
-                this.showToast(`Mileage updated for ${vehicle.plate}.`);
             },
 
             saveStatus(e) {
@@ -1862,7 +1773,7 @@
                         name: `${v.make} ${v.model}`,
                         plate: v.license_plate,
                         type: v.type.charAt(0).toUpperCase() + v.type.slice(1),
-                        mileage: v.mileage || 0,
+                        mileage: 0,
                         fuel: v.fuel_level || 100,
                         status: v.status.charAt(0).toUpperCase() + v.status.replace(/_/g, ' ').slice(1),
                         rev: 0,

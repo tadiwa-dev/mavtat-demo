@@ -194,7 +194,7 @@ app.get('/api/vehicles/:id', requireAuth, async (req, res) => {
 });
 
 app.post('/api/vehicles', requireAuth, requireWriteAccess, async (req, res) => {
-    const { make, model, license_plate, type, mileage, actual_owner } = req.body;
+    const { make, model, license_plate, type, actual_owner } = req.body;
 
     if (!make || !model || !license_plate || !type) {
         return res.status(400).json({ error: 'Missing required fields' });
@@ -202,7 +202,7 @@ app.post('/api/vehicles', requireAuth, requireWriteAccess, async (req, res) => {
 
     const { data, error } = await supabase
         .from('vehicles')
-        .insert([{ make, model, license_plate, type, mileage: mileage || 0, actual_owner: actual_owner || null }])
+        .insert([{ make, model, license_plate, type, mileage: 0, actual_owner: actual_owner || null }])
         .select()
         .single();
 
@@ -215,29 +215,11 @@ app.post('/api/vehicles', requireAuth, requireWriteAccess, async (req, res) => {
 
 app.patch('/api/vehicles/:id', requireAuth, requireWriteAccess, async (req, res) => {
     const vehicleId = req.params.id;
-    const { mileage, actual_owner, fuel_level, status, make, model, license_plate, type } = req.body;
-
-    // If mileage is being updated, get the previous mileage first for the log
-    if (mileage !== undefined) {
-        const { data: vehicle } = await supabase
-            .from('vehicles')
-            .select('mileage')
-            .eq('id', vehicleId)
-            .single();
-
-        // Log the mileage change
-        await supabase.from('mileage_logs').insert([{
-            vehicle_id: vehicleId,
-            mileage: mileage,
-            previous_mileage: vehicle ? vehicle.mileage : null,
-            recorded_by: req.user.id
-        }]);
-    }
+    const { actual_owner, fuel_level, status, make, model, license_plate, type } = req.body;
 
     // Build update object with only allowed fields
     const updateData = { updated_at: new Date().toISOString() };
     
-    if (mileage !== undefined) updateData.mileage = mileage;
     if (fuel_level !== undefined) updateData.fuel_level = fuel_level;
     if (status !== undefined) updateData.status = status;
     if (make !== undefined) updateData.make = make;
@@ -424,13 +406,6 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
         const { data: rentals } = await supabase.from('rental').select('price').eq('vehicle_id', v.id);
         const { data: payments } = await supabase.from('payments').select('amount').eq('vehicle_id', v.id);
         const { data: maintenance } = await supabase.from('maintenance').select('cost').eq('vehicle_id', v.id);
-        const { data: mileageLogs } = await supabase.from('mileage_logs').select('mileage').eq('vehicle_id', v.id).order('recorded_at', { ascending: true });
-        
-        // Calculate distance driven (last recorded mileage minus first recorded mileage)
-        let distanceDriven = 0;
-        if (mileageLogs && mileageLogs.length > 1) {
-            distanceDriven = mileageLogs[mileageLogs.length - 1].mileage - mileageLogs[0].mileage;
-        }
 
         const rentalIncome = rentals?.reduce((sum, r) => sum + (r.price || 0), 0) || 0;
         const paymentIncome = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
@@ -443,8 +418,7 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
             type: v.type,
             total_rentals: (rentals?.length || 0) + (payments?.length || 0),
             total_revenue: totalRevenue,
-            total_maintenance_cost: maintenance?.reduce((sum, m) => sum + (m.cost || 0), 0) || 0,
-            distance_driven: distanceDriven
+            total_maintenance_cost: maintenance?.reduce((sum, m) => sum + (m.cost || 0), 0) || 0
         };
     }));
 

@@ -31,7 +31,7 @@ app.init = async function() {
             name: `${v.make} ${v.model}`, // Combine make and model
             plate: v.license_plate,
             type: v.type.charAt(0).toUpperCase() + v.type.slice(1), // Capitalize
-            mileage: v.mileage || 0,
+            mileage: 0,
             fuel: v.fuel_level || 100,
             status: v.status.charAt(0).toUpperCase() + v.status.replace(/_/g, ' ').slice(1), // Capitalize and replace underscores
             actual_owner: v.actual_owner || 'N/A',
@@ -42,13 +42,12 @@ app.init = async function() {
             balance: v.balance || 0
         }));
 
-        // Merge revenue and mileage data
+        // Merge revenue data
         reportsData.forEach(report => {
             const vehicle = app.state.vehicles.find(v => v.id == report.id);
             if (vehicle) {
                 vehicle.rev = report.total_revenue || 0;
                 vehicle.expenses = report.total_maintenance_cost || 0;
-                vehicle.distanceDriven = report.distance_driven || 0;
             }
         });
         
@@ -100,9 +99,7 @@ app.addVehicle = async function(e) {
     const model = document.getElementById('v-name').value.split(' ').slice(1).join(' ') || 'Unknown';
     const license_plate = document.getElementById('v-plate').value.toUpperCase();
     const type = document.getElementById('v-type').value.toLowerCase();
-    const mileage = parseInt(document.getElementById('v-mileage').value);
     const actual_owner = document.getElementById('v-actual-owner').value.trim() || null;
-
     try {
         // Save to backend
         const result = await API.vehicles.create({
@@ -110,7 +107,7 @@ app.addVehicle = async function(e) {
             model: model || 'Unknown',
             license_plate,
             type,
-            mileage,
+            mileage: 0,
             actual_owner
         });
 
@@ -121,7 +118,7 @@ app.addVehicle = async function(e) {
             name: `${v.make} ${v.model}`,
             plate: v.license_plate,
             type: v.type.charAt(0).toUpperCase() + v.type.slice(1),
-            mileage: v.mileage || 0,
+            mileage: 0,
             fuel: v.fuel_level || 100,
             status: v.status.charAt(0).toUpperCase() + v.status.replace(/_/g, ' ').slice(1),
             actual_owner: v.actual_owner || 'N/A',
@@ -140,38 +137,7 @@ app.addVehicle = async function(e) {
     }
 };
 
-// Override saveMileage to save to backend
-const originalSaveMileage = app.saveMileage;
-app.saveMileage = async function(e) {
-    e.preventDefault();
-    const id = document.getElementById('um-id').value;
-    const vehicle = this.state.vehicles.find(v => v.id == id);
-    const newMileage = parseInt(document.getElementById('um-new').value);
 
-    if (newMileage <= vehicle.mileage) {
-        document.getElementById('um-error').classList.remove('hidden');
-        return;
-    }
-
-    try {
-        // Update backend
-        await API.vehicles.updateMileage(id, newMileage);
-        
-        // Update local state
-        vehicle.mileage = newMileage;
-        
-        this.state.activities.unshift({
-            time: 'Just Now', car: vehicle.plate, type: 'Mileage Updated', status: 'Completed'
-        });
-
-        this.closeModal('modal-update-mileage');
-        this.renderRegistry();
-        this.showToast(`Mileage updated for ${vehicle.plate}.`);
-    } catch (error) {
-        console.error('Error updating mileage:', error);
-        this.showToast('Failed to update mileage: ' + error.message);
-    }
-};
 
 // Override saveStatus to save to backend
 const originalSaveStatus = app.saveStatus;

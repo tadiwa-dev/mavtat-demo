@@ -399,7 +399,7 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
     // Note: Complex joins are better done via RPC or View in Supabase, 
     // but for now we can do a simplified version or multiple queries.
     // Let's use a simpler approach for the demo.
-    const { data: vehicles, error: vErr } = await supabase.from('vehicles').select('id, make, model, license_plate, type');
+    const { data: vehicles, error: vErr } = await supabase.from('vehicles').select('id, make, model, license_plate, type, balance');
     if (vErr) return res.status(500).json({ error: vErr.message });
 
     const reports = await Promise.all(vehicles.map(async (v) => {
@@ -416,6 +416,7 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
             vehicle: `${v.make} ${v.model}`,
             license_plate: v.license_plate,
             type: v.type,
+            balance: v.balance || 0,
             total_rentals: (rentals?.length || 0) + (payments?.length || 0),
             total_revenue: totalRevenue,
             total_maintenance_cost: maintenance?.reduce((sum, m) => sum + (m.cost || 0), 0) || 0

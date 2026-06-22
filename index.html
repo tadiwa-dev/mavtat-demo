@@ -567,6 +567,7 @@
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Asset</th>
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Revenue</th>
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Expenses</th>
+                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Balance</th>
                                 <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Net Profit</th>
                             </tr>
                         </thead>
@@ -1521,6 +1522,7 @@
                             </td>
                             <td class="px-6 py-4 text-right font-semibold text-slate-800">${this.formatCurrency(v.rev)}</td>
                             <td class="px-6 py-4 text-right text-rose-600 font-medium">${this.formatCurrency(v.expenses || 0)}</td>
+                            <td class="px-6 py-4 text-right text-slate-800 font-medium">${this.formatCurrency(v.balance || 0)}</td>
                             <td class="px-6 py-4 text-right">
                                 <span class="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${profitClass}">
                                     ${this.formatCurrency(profit)}
@@ -1530,11 +1532,13 @@
                     `;
                 }).join('');
 
+                const totalBalance = vehicles.reduce((s, v) => s + (v.balance || 0), 0);
                 document.getElementById('reports-tfoot').innerHTML = `
                     <tr class="bg-slate-50 border-t border-slate-200">
                         <td class="px-6 py-4 uppercase text-[10px] tracking-widest text-slate-500 font-bold">Total</td>
                         <td class="px-6 py-4 text-right text-lg font-black text-slate-800">${this.formatCurrency(totalRev)}</td>
                         <td class="px-6 py-4 text-right text-rose-600 font-black text-sm">${this.formatCurrency(totalExpenses)}</td>
+                        <td class="px-6 py-4 text-right text-slate-800 font-black text-sm">${this.formatCurrency(totalBalance)}</td>
                         <td class="px-6 py-4 text-right text-primary text-lg font-black">${this.formatCurrency(netProfit)}</td>
                     </tr>
                 `;
@@ -1839,7 +1843,7 @@
 
             // Exports
             exportCSV() {
-                let csvContent = "Asset,Plate,Type,Owner,Revenue,Expenses,Net Profit\r\n";
+                let csvContent = "Asset,Plate,Type,Owner,Revenue,Expenses,Balance,Net Profit\r\n";
 
                 const selectedOwner = document.getElementById('filter-report-owner').value;
                 let vehicles = this.state.vehicles;
@@ -1850,9 +1854,10 @@
                 vehicles.forEach(v => {
                     const profit = v.rev - (v.expenses || 0);
                     const owner = v.actual_owner || 'N/A';
+                    const balance = v.balance || 0;
                     // Properly escape CSV strings to handle commas and quotes
                     const escapeCSV = (str) => `"${String(str).replace(/"/g, '""')}"`;
-                    const row = `${escapeCSV(v.name)},${escapeCSV(v.plate)},${escapeCSV(v.type)},${escapeCSV(owner)},${v.rev},${v.expenses || 0},${profit}`;
+                    const row = `${escapeCSV(v.name)},${escapeCSV(v.plate)},${escapeCSV(v.type)},${escapeCSV(owner)},${v.rev},${v.expenses || 0},${balance},${profit}`;
                     csvContent += row + "\r\n";
                 });
 
@@ -1901,13 +1906,14 @@
                             owner,
                             this.formatCurrency(v.rev),
                             this.formatCurrency(v.expenses || 0),
+                            this.formatCurrency(v.balance || 0),
                             this.formatCurrency(profit)
                         ];
                     });
 
                     doc.autoTable({
                         startY: 40,
-                        head: [['Asset Details', 'Type', 'Owner', 'Revenue', 'Expenses', 'Net Profit']],
+                        head: [['Asset Details', 'Type', 'Owner', 'Revenue', 'Expenses', 'Balance', 'Net Profit']],
                         body: tableData,
                         theme: 'striped',
                         headStyles: { fillColor: [0, 64, 161] },
@@ -1915,7 +1921,8 @@
                         columnStyles: {
                             3: { halign: 'right' },
                             4: { halign: 'right' },
-                            5: { halign: 'right', fontStyle: 'bold' }
+                            5: { halign: 'right' },
+                            6: { halign: 'right', fontStyle: 'bold' }
                         }
                     });
 

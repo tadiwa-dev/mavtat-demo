@@ -507,10 +507,10 @@
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Type</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Owner</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Fuel</th>
-                                <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 1</th>
-                                <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 2</th>
-                                <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 3</th>
-                                <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 4</th>
+                                <th id="th-wk1" class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 1</th>
+                                <th id="th-wk2" class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 2</th>
+                                <th id="th-wk3" class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 3</th>
+                                <th id="th-wk4" class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 4</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Balance</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Expenses</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
@@ -723,7 +723,7 @@
                             <option value="1">Week 1 (Days 1 - 7)</option>
                             <option value="2">Week 2 (Days 8 - 14)</option>
                             <option value="3">Week 3 (Days 15 - 21)</option>
-                            <option value="4" selected>Week 4 (Days 22+)</option>
+                            <option value="4">Week 4 (Days 22+)</option>
                         </select>
                     </div>
                     <div>
@@ -1200,6 +1200,11 @@
             formatCurrency: (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num),
             formatNumber: (num) => new Intl.NumberFormat('en-US').format(num),
 
+            getCurrentWeekNumber() {
+                const day = new Date().getDate();
+                return day <= 7 ? 1 : day <= 14 ? 2 : day <= 21 ? 3 : 4;
+            },
+
             // Navigation
             navigate(view) {
                 this.state.currentView = view;
@@ -1411,6 +1416,20 @@
                     return;
                 }
 
+                const curWk = this.getCurrentWeekNumber();
+                [1, 2, 3, 4].forEach(w => {
+                    const thEl = document.getElementById(`th-wk${w}`);
+                    if (thEl) {
+                        if (w === curWk) {
+                            thEl.innerHTML = `WK ${w} <span class="bg-emerald-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-black ml-0.5 shadow-sm">NOW</span>`;
+                            thEl.className = "px-3 py-3 text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50/80 text-center border-b-2 border-emerald-500";
+                        } else {
+                            thEl.innerHTML = `WK ${w}`;
+                            thEl.className = "px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center";
+                        }
+                    }
+                });
+
                 tbody.innerHTML = filtered.map(v => {
                     let icon = 'directions_car';
                     let typeClass = 'bg-slate-50 border border-slate-200 text-slate-600';
@@ -1468,18 +1487,15 @@
                                 </div>
                             </div>
                         </td>
-                        ${hasWeeklyCashIn ? `
-                        <td class="px-3 py-4 text-center font-bold text-xs text-slate-700">${this.formatCurrency(v.week1 || 0)}</td>
-                        <td class="px-3 py-4 text-center font-bold text-xs text-slate-700">${this.formatCurrency(v.week2 || 0)}</td>
-                        <td class="px-3 py-4 text-center font-bold text-xs text-slate-700">${this.formatCurrency(v.week3 || 0)}</td>
-                        <td class="px-3 py-4 text-center">
-                            <p class="font-bold text-xs text-slate-700">${this.formatCurrency(v.week4 || 0)}</p>
-                            ${this.state.currentUser.role !== 'viewer' ? `
-                                <button onclick="event.stopPropagation(); app.openUpdateCashIn('${v.id}')" class="mt-1 inline-flex items-center gap-0.5 px-2 py-0.5 bg-emerald-50 border border-emerald-100 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded text-[9px] font-bold transition-all shadow-sm">
+                        ${hasWeeklyCashIn ? [1, 2, 3, 4].map(w => `
+                        <td class="px-3 py-4 text-center ${w === curWk ? 'bg-emerald-50/30' : ''}">
+                            <p class="font-bold text-xs ${w === curWk ? 'text-emerald-950 font-black' : 'text-slate-700'}">${this.formatCurrency(v['week' + w] || 0)}</p>
+                            ${w === curWk && this.state.currentUser.role !== 'viewer' ? `
+                                <button onclick="event.stopPropagation(); app.openUpdateCashIn('${v.id}')" class="mt-1 inline-flex items-center gap-0.5 px-2 py-0.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded text-[9px] font-black transition-all shadow-sm animate-pulse">
                                     <span class="material-symbols-outlined text-[10px]">add</span> Cash-In
                                 </button>
                             ` : ''}
-                        </td>
+                        </td>`).join('') + `
                         <td class="px-4 py-4">
                             <span class="sm-label">Balance</span>
                             <p class="text-sm font-bold ${v.balance < 0 ? 'text-rose-600' : 'text-slate-800'}">${this.formatCurrency(v.balance)}</p>
@@ -1694,7 +1710,7 @@
                 document.getElementById('ci-weekly').value = vehicle.weeklyCashIn;
                 document.getElementById('ci-balance').value = vehicle.balance;
                 const weekEl = document.getElementById('ci-week');
-                if (weekEl) weekEl.value = '4';
+                if (weekEl) weekEl.value = String(this.getCurrentWeekNumber());
                 
                 this.openModal('modal-update-cashin');
             },
@@ -1716,10 +1732,12 @@
                 try {
                     let dateStr = new Date().toISOString();
                     const now = new Date();
-                    if (weekVal === 1) dateStr = new Date(now.getFullYear(), now.getMonth(), 3).toISOString();
-                    else if (weekVal === 2) dateStr = new Date(now.getFullYear(), now.getMonth(), 10).toISOString();
-                    else if (weekVal === 3) dateStr = new Date(now.getFullYear(), now.getMonth(), 17).toISOString();
-                    else dateStr = new Date(now.getFullYear(), now.getMonth(), 25).toISOString();
+                    if (weekVal !== this.getCurrentWeekNumber()) {
+                        if (weekVal === 1) dateStr = new Date(now.getFullYear(), now.getMonth(), 3, 12, 0, 0).toISOString();
+                        else if (weekVal === 2) dateStr = new Date(now.getFullYear(), now.getMonth(), 10, 12, 0, 0).toISOString();
+                        else if (weekVal === 3) dateStr = new Date(now.getFullYear(), now.getMonth(), 17, 12, 0, 0).toISOString();
+                        else dateStr = new Date(now.getFullYear(), now.getMonth(), 25, 12, 0, 0).toISOString();
+                    }
 
                     if (payment > 0) {
                         await API.payments.create({ vehicle_id: id, amount: payment, date: dateStr });

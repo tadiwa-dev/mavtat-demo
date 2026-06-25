@@ -224,15 +224,7 @@
         .responsive-registry-table tbody tr {
             transition: background-color 0.15s ease;
         }
-        /* Hide non-essential columns on screens under 1400px */
-        @media (max-width: 1399px) {
-            .responsive-registry-table thead th:nth-child(6),
-            .responsive-registry-table thead th:nth-child(7),
-            .responsive-registry-table tbody td:nth-child(6),
-            .responsive-registry-table tbody td:nth-child(7) {
-                display: none;
-            }
-        }
+        /* Responsive table display rules */
         @media (max-width: 1023px) {
             .responsive-registry-table thead {
                 display: none;
@@ -502,17 +494,23 @@
                 </div>
             </div>
 
+            <!-- Owner Totals Summary -->
+            <div id="registry-owner-totals" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"></div>
+
             <!-- Table -->
             <div class="bg-white rounded-2xl overflow-hidden shadow-card border border-slate-200/60">
                 <div class="overflow-x-auto">
-                    <table class="responsive-registry-table w-full text-left border-collapse">
+                    <table class="responsive-registry-table w-full text-left border-collapse min-w-[900px]">
                         <thead class="hidden md:table-header-group">
                             <tr class="bg-slate-50/80 border-b border-slate-200/60">
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Vehicle Details</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Type</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Owner</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Fuel</th>
-                                <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Weekly Cash-In</th>
+                                <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 1</th>
+                                <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 2</th>
+                                <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 3</th>
+                                <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 4</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Balance</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Expenses</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
@@ -718,10 +716,21 @@
                         <input type="number" id="ci-balance" required step="0.01" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none font-bold">
                     </div>
                 </div>
-                <div class="bg-primary/5 p-4 rounded-xl border border-primary/10">
-                    <label class="block text-xs font-bold text-primary uppercase tracking-wider mb-2">Record New Payment ($)</label>
-                    <input type="number" id="ci-payment" placeholder="Amount driver brought" step="0.01" class="w-full px-4 py-3 bg-white border-2 border-primary/20 rounded-xl text-lg focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none text-primary font-black">
-                    <p class="text-[10px] text-secondary mt-2 italic">If driver pays less than target, the difference is added to balance.</p>
+                <div class="bg-primary/5 p-4 rounded-xl border border-primary/10 space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-primary uppercase tracking-wider mb-1">Applicable Week</label>
+                        <select id="ci-week" class="w-full px-3 py-2 bg-white border border-primary/20 rounded-xl text-xs font-bold text-primary outline-none focus:ring-2 focus:ring-primary/10">
+                            <option value="1">Week 1 (Days 1 - 7)</option>
+                            <option value="2">Week 2 (Days 8 - 14)</option>
+                            <option value="3">Week 3 (Days 15 - 21)</option>
+                            <option value="4" selected>Week 4 (Days 22+)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-primary uppercase tracking-wider mb-1">Record New Payment ($)</label>
+                        <input type="number" id="ci-payment" placeholder="Amount driver brought" step="0.01" class="w-full px-4 py-2.5 bg-white border-2 border-primary/20 rounded-xl text-lg focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none text-primary font-black">
+                    </div>
+                    <p class="text-[10px] text-secondary italic">If driver pays less than target, the difference is added to balance.</p>
                 </div>
                 <div class="pt-4 flex gap-3">
                     <button type="button" onclick="app.closeModal('modal-update-cashin')" class="flex-1 px-4 py-2 bg-surface-container-high text-on-surface font-bold rounded-xl hover:bg-surface-variant">Cancel</button>
@@ -1278,33 +1287,26 @@
                 `;
                 document.getElementById('dashboard-stats').innerHTML = statsHtml;
 
-                const activityHtml = this.state.activities.map(a => {
+                // Group activities into weeks
+                const weekBuckets = { 'Week 4': [], 'Week 3': [], 'Week 2': [], 'Week 1': [] };
+                this.state.activities.forEach(a => {
+                    const day = a.recorded_at ? new Date(a.recorded_at).getDate() : new Date().getDate();
+                    if (day <= 7) weekBuckets['Week 1'].push(a);
+                    else if (day <= 14) weekBuckets['Week 2'].push(a);
+                    else if (day <= 21) weekBuckets['Week 3'].push(a);
+                    else weekBuckets['Week 4'].push(a);
+                });
+
+                const buildItemHtml = (a) => {
                     let icon = 'history';
                     let iconBg = 'bg-slate-50 border border-slate-100';
                     let iconColor = 'text-slate-500';
-                    
                     const desc = a.type.toLowerCase();
-                    if (desc.includes('new vehicle') || desc.includes('registered')) {
-                        icon = 'add';
-                        iconBg = 'bg-emerald-50 border border-emerald-100/50';
-                        iconColor = 'text-emerald-500';
-                    } else if (desc.includes('payment') || desc.includes('cash-in')) {
-                        icon = 'payments';
-                        iconBg = 'bg-emerald-50 border border-emerald-100/50';
-                        iconColor = 'text-emerald-500';
-                    } else if (desc.includes('mileage') || desc.includes('km')) {
-                        icon = 'speed';
-                        iconBg = 'bg-indigo-50 border border-indigo-100/50';
-                        iconColor = 'text-indigo-500';
-                    } else if (desc.includes('expense')) {
-                        icon = 'receipt_long';
-                        iconBg = 'bg-rose-50 border border-rose-100/50';
-                        iconColor = 'text-rose-500';
-                    } else if (desc.includes('status')) {
-                        icon = 'swap_horiz';
-                        iconBg = 'bg-amber-50 border border-amber-100/50';
-                        iconColor = 'text-amber-500';
-                    }
+                    if (desc.includes('new vehicle') || desc.includes('registered')) { icon = 'add'; iconBg = 'bg-emerald-50 border border-emerald-100/50'; iconColor = 'text-emerald-500'; }
+                    else if (desc.includes('payment') || desc.includes('cash-in')) { icon = 'payments'; iconBg = 'bg-emerald-50 border border-emerald-100/50'; iconColor = 'text-emerald-500'; }
+                    else if (desc.includes('mileage') || desc.includes('km')) { icon = 'speed'; iconBg = 'bg-indigo-50 border border-indigo-100/50'; iconColor = 'text-indigo-500'; }
+                    else if (desc.includes('expense')) { icon = 'receipt_long'; iconBg = 'bg-rose-50 border border-rose-100/50'; iconColor = 'text-rose-500'; }
+                    else if (desc.includes('status')) { icon = 'swap_horiz'; iconBg = 'bg-amber-50 border border-amber-100/50'; iconColor = 'text-amber-500'; }
 
                     return `
                     <div class="flex items-center justify-between p-3.5 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-100 group">
@@ -1325,8 +1327,23 @@
                         </div>
                     </div>
                     `;
-                }).join('');
-                document.getElementById('recent-activity-list').innerHTML = activityHtml;
+                };
+
+                let activityHtml = '';
+                Object.keys(weekBuckets).forEach(wkName => {
+                    const items = weekBuckets[wkName];
+                    if (items.length === 0) return;
+                    activityHtml += `
+                        <div class="space-y-2 pt-3 first:pt-0">
+                            <div class="px-2.5 py-1 bg-slate-100/80 border border-slate-200/50 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-500 w-fit">${wkName}</div>
+                            <div class="space-y-1">
+                                ${items.map(buildItemHtml).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                document.getElementById('recent-activity-list').innerHTML = activityHtml || '<p class="p-6 text-center text-slate-400 font-medium">No recent activities found.</p>';
             },
 
             renderRegistry() {
@@ -1348,8 +1365,49 @@
 
                 document.getElementById('registry-count').innerText = `Showing ${filtered.length} vehicles`;
 
+                // Calculate and render totals for each owner
+                const ownerTotalsMap = {};
+                this.state.vehicles.forEach(v => {
+                    const ow = v.actual_owner || 'Unknown';
+                    if (!ownerTotalsMap[ow]) {
+                        ownerTotalsMap[ow] = { count: 0, cashIn: 0, balance: 0, expenses: 0, profit: 0 };
+                    }
+                    const totWk = (v.week1||0) + (v.week2||0) + (v.week3||0) + (v.week4||0);
+                    ownerTotalsMap[ow].count += 1;
+                    ownerTotalsMap[ow].cashIn += totWk;
+                    ownerTotalsMap[ow].balance += (v.balance||0);
+                    ownerTotalsMap[ow].expenses += (v.expenses||0);
+                    ownerTotalsMap[ow].profit += (totWk - (v.expenses||0));
+                });
+
+                const ownerContainerEl = document.getElementById('registry-owner-totals');
+                if (ownerContainerEl) {
+                    const ownersToShow = owner ? [owner] : Object.keys(ownerTotalsMap).sort();
+                    ownerContainerEl.innerHTML = ownersToShow.map(owKey => {
+                        if (!ownerTotalsMap[owKey]) return '';
+                        const t = ownerTotalsMap[owKey];
+                        return `
+                            <div class="bg-white rounded-2xl p-4 border border-slate-200/60 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+                                <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-primary text-lg">person</span>
+                                        <span class="font-black text-sm text-slate-800">${owKey}</span>
+                                    </div>
+                                    <span class="bg-primary/10 text-primary text-[10px] font-black px-2.5 py-0.5 rounded-full">${t.count} Vehicles</span>
+                                </div>
+                                <div class="grid grid-cols-4 gap-1 text-center">
+                                    <div class="bg-slate-50/80 p-1.5 rounded-xl"><span class="text-[8px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Cash-In</span><span class="text-xs font-black text-emerald-600">${this.formatCurrency(t.cashIn)}</span></div>
+                                    <div class="bg-slate-50/80 p-1.5 rounded-xl"><span class="text-[8px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Expenses</span><span class="text-xs font-black text-rose-600">${this.formatCurrency(t.expenses)}</span></div>
+                                    <div class="bg-slate-50/80 p-1.5 rounded-xl"><span class="text-[8px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Balance</span><span class="text-xs font-black ${t.balance<0?'text-rose-600':'text-slate-800'}">${this.formatCurrency(t.balance)}</span></div>
+                                    <div class="bg-primary/5 border border-primary/10 p-1.5 rounded-xl"><span class="text-[8px] font-bold uppercase tracking-wider text-primary block mb-0.5">Profit</span><span class="text-xs font-black text-primary">${this.formatCurrency(t.profit)}</span></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
                 if(filtered.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-400 font-medium">No vehicles found.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400 font-medium">No vehicles found.</td></tr>`;
                     return;
                 }
 
@@ -1411,28 +1469,27 @@
                             </div>
                         </td>
                         ${hasWeeklyCashIn ? `
-                        <td class="px-4 py-4">
-                            <span class="sm-label">Weekly Cash-In</span>
-                            <p class="text-sm font-bold text-primary">${this.formatCurrency(v.weeklyCashIn)}</p>
+                        <td class="px-3 py-4 text-center font-bold text-xs text-slate-700">${this.formatCurrency(v.week1 || 0)}</td>
+                        <td class="px-3 py-4 text-center font-bold text-xs text-slate-700">${this.formatCurrency(v.week2 || 0)}</td>
+                        <td class="px-3 py-4 text-center font-bold text-xs text-slate-700">${this.formatCurrency(v.week3 || 0)}</td>
+                        <td class="px-3 py-4 text-center">
+                            <p class="font-bold text-xs text-slate-700">${this.formatCurrency(v.week4 || 0)}</p>
                             ${this.state.currentUser.role !== 'viewer' ? `
-                                <button onclick="event.stopPropagation(); app.openUpdateCashIn('${v.id}')" class="mt-2 inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-100 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-lg text-[10px] font-bold transition-all shadow-sm">
-                                    <span class="material-symbols-outlined text-[12px]">payments</span> Cash-In
+                                <button onclick="event.stopPropagation(); app.openUpdateCashIn('${v.id}')" class="mt-1 inline-flex items-center gap-0.5 px-2 py-0.5 bg-emerald-50 border border-emerald-100 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded text-[9px] font-bold transition-all shadow-sm">
+                                    <span class="material-symbols-outlined text-[10px]">add</span> Cash-In
                                 </button>
                             ` : ''}
                         </td>
                         <td class="px-4 py-4">
                             <span class="sm-label">Balance</span>
-                            <p class="text-sm font-bold text-slate-800">${this.formatCurrency(v.balance)}</p>
+                            <p class="text-sm font-bold ${v.balance < 0 ? 'text-rose-600' : 'text-slate-800'}">${this.formatCurrency(v.balance)}</p>
                         </td>
                         ` : `
-                        <td class="px-4 py-4 text-slate-400 text-xs">
-                            <span class="sm-label">Weekly Cash-In</span>
-                            -
-                        </td>
-                        <td class="px-4 py-4 text-slate-400 text-xs">
-                            <span class="sm-label">Balance</span>
-                            -
-                        </td>
+                        <td class="px-3 py-4 text-center text-slate-300 text-xs">-</td>
+                        <td class="px-3 py-4 text-center text-slate-300 text-xs">-</td>
+                        <td class="px-3 py-4 text-center text-slate-300 text-xs">-</td>
+                        <td class="px-3 py-4 text-center text-slate-300 text-xs">-</td>
+                        <td class="px-4 py-4 text-slate-400 text-xs"><span class="sm-label">Balance</span>-</td>
                         `}
                         <td class="px-4 py-4">
                             <span class="sm-label">Expenses</span>
@@ -1636,6 +1693,8 @@
                 document.getElementById('ci-plate').innerText = vehicle.plate;
                 document.getElementById('ci-weekly').value = vehicle.weeklyCashIn;
                 document.getElementById('ci-balance').value = vehicle.balance;
+                const weekEl = document.getElementById('ci-week');
+                if (weekEl) weekEl.value = '4';
                 
                 this.openModal('modal-update-cashin');
             },
@@ -1647,21 +1706,26 @@
                 const target = parseFloat(document.getElementById('ci-weekly').value);
                 const currentBalance = parseFloat(document.getElementById('ci-balance').value);
                 const payment = parseFloat(document.getElementById('ci-payment').value) || 0;
+                const weekVal = parseInt(document.getElementById('ci-week')?.value) || 4;
 
-                // Calculate new balance based on business logic:
-                // If they owe $350 and bring $300, balance increases by $50.
                 let newBalance = currentBalance;
                 if (payment > 0) {
                     newBalance = currentBalance + (target - payment);
                 }
 
                 try {
-                    // 1. Record the payment for revenue tracking
+                    let dateStr = new Date().toISOString();
+                    const now = new Date();
+                    if (weekVal === 1) dateStr = new Date(now.getFullYear(), now.getMonth(), 3).toISOString();
+                    else if (weekVal === 2) dateStr = new Date(now.getFullYear(), now.getMonth(), 10).toISOString();
+                    else if (weekVal === 3) dateStr = new Date(now.getFullYear(), now.getMonth(), 17).toISOString();
+                    else dateStr = new Date(now.getFullYear(), now.getMonth(), 25).toISOString();
+
                     if (payment > 0) {
-                        await API.payments.create({ vehicle_id: id, amount: payment });
+                        await API.payments.create({ vehicle_id: id, amount: payment, date: dateStr });
+                        vehicle[`week${weekVal}`] = (vehicle[`week${weekVal}`] || 0) + payment;
                     }
 
-                    // 2. Update the vehicle's target and balance
                     await API.vehicles.update(id, {
                         weekly_cash_in: target,
                         balance: newBalance
@@ -1669,20 +1733,21 @@
 
                     vehicle.weeklyCashIn = target;
                     vehicle.balance = newBalance;
-                    vehicle.rev = (vehicle.rev || 0) + payment; // Update local revenue for dashboard
+                    vehicle.rev = (vehicle.rev || 0) + payment;
                     
                     this.state.activities.unshift({
                         time: 'Just Now', 
+                        recorded_at: dateStr,
                         car: vehicle.plate, 
-                        type: payment > 0 ? `Payment Recorded: $${payment}` : `Target Updated: $${target}`, 
+                        type: payment > 0 ? `Wk ${weekVal} Payment Recorded: $${payment}` : `Target Updated: $${target}`, 
                         status: 'Completed'
                     });
 
                     this.closeModal('modal-update-cashin');
-                    document.getElementById('ci-payment').value = ''; // Reset payment field
+                    document.getElementById('ci-payment').value = '';
                     this.renderRegistry();
                     this.renderDashboard();
-                    this.showToast(payment > 0 ? `Payment of $${payment} recorded. New balance: $${newBalance}` : 'Cash-in settings updated.');
+                    this.showToast(payment > 0 ? `Wk ${weekVal} payment of $${payment} recorded. New balance: $${newBalance}` : 'Cash-in settings updated.');
                 } catch (error) {
                     console.error('Error saving cash-in:', error);
                     this.showToast('Failed to save data: ' + error.message);

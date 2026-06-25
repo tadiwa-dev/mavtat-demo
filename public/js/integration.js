@@ -37,6 +37,10 @@ app.init = async function() {
             actual_owner: v.actual_owner || 'N/A',
             rev: 0, // Will be calculated from reports
             expenses: 0, // Will be calculated from maintenance
+            week1: 0,
+            week2: 0,
+            week3: 0,
+            week4: 0,
             // Add cash-in tracking for taxis and rentals
             weeklyCashIn: v.weekly_cash_in || 0,
             balance: v.balance || 0
@@ -48,6 +52,10 @@ app.init = async function() {
             if (vehicle) {
                 vehicle.rev = report.total_revenue || 0;
                 vehicle.expenses = report.total_maintenance_cost || 0;
+                vehicle.week1 = report.week1 || 0;
+                vehicle.week2 = report.week2 || 0;
+                vehicle.week3 = report.week3 || 0;
+                vehicle.week4 = report.week4 || 0;
             }
         });
         
@@ -55,6 +63,7 @@ app.init = async function() {
         const activitiesData = await API.activities.list();
         app.state.activities = activitiesData.map(a => ({
             time: this.formatTime(a.recorded_at),
+            recorded_at: a.recorded_at,
             car: a.car,
             type: a.description,
             status: 'Completed'

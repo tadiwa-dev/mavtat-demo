@@ -215,7 +215,7 @@ app.post('/api/vehicles', requireAuth, requireWriteAccess, async (req, res) => {
 
 app.patch('/api/vehicles/:id', requireAuth, requireWriteAccess, async (req, res) => {
     const vehicleId = req.params.id;
-    const { actual_owner, fuel_level, status, make, model, license_plate, type } = req.body;
+    const { actual_owner, fuel_level, status, make, model, license_plate, type, weekly_cash_in, balance } = req.body;
 
     // Build update object with only allowed fields
     const updateData = { updated_at: new Date().toISOString() };
@@ -227,6 +227,8 @@ app.patch('/api/vehicles/:id', requireAuth, requireWriteAccess, async (req, res)
     if (license_plate !== undefined) updateData.license_plate = license_plate;
     if (type !== undefined) updateData.type = type;
     if (actual_owner !== undefined) updateData.actual_owner = actual_owner;
+    if (weekly_cash_in !== undefined) updateData.weekly_cash_in = weekly_cash_in;
+    if (balance !== undefined) updateData.balance = balance;
     
     const { error } = await supabase
         .from('vehicles')
@@ -307,19 +309,22 @@ app.post('/api/maintenance', requireAuth, requireWriteAccess, async (req, res) =
 // ============= PAYMENT ENDPOINTS =============
 
 app.post('/api/payments', requireAuth, requireWriteAccess, async (req, res) => {
-    const { vehicle_id, amount } = req.body;
+    const { vehicle_id, amount, date } = req.body;
     
     if (!vehicle_id || !amount) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    const insertPayload = { 
+        vehicle_id, 
+        amount, 
+        recorded_by: req.user.id 
+    };
+    if (date) insertPayload.date = date;
+
     const { data, error } = await supabase
         .from('payments')
-        .insert([{ 
-            vehicle_id, 
-            amount, 
-            recorded_by: req.user.id 
-        }])
+        .insert([insertPayload])
         .select()
         .single();
 
@@ -404,12 +409,22 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
 
     const reports = await Promise.all(vehicles.map(async (v) => {
         const { data: rentals } = await supabase.from('rental').select('price').eq('vehicle_id', v.id);
-        const { data: payments } = await supabase.from('payments').select('amount').eq('vehicle_id', v.id);
+        const { data: payments } = await supabase.from('payments').select('amount, date').eq('vehicle_id', v.id);
         const { data: maintenance } = await supabase.from('maintenance').select('cost').eq('vehicle_id', v.id);
 
         const rentalIncome = rentals?.reduce((sum, r) => sum + (r.price || 0), 0) || 0;
         const paymentIncome = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
         const totalRevenue = rentalIncome + paymentIncome;
+
+        let week1 = 0, week2 = 0, week3 = 0, week4 = 0;
+        payments?.forEach(p => {
+            const amt = p.amount || 0;
+            const day = p.date ? new Date(p.date).getDate() : 1;
+            if (day <= 7) week1 += amt;
+            else if (day <= 14) week2 += amt;
+            else if (day <= 21) week3 += amt;
+            else week4 += amt;
+        });
 
         return {
             id: v.id,
@@ -419,6 +434,10 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
             balance: v.balance || 0,
             total_rentals: (rentals?.length || 0) + (payments?.length || 0),
             total_revenue: totalRevenue,
+            week1,
+            week2,
+            week3,
+            week4,
             total_maintenance_cost: maintenance?.reduce((sum, m) => sum + (m.cost || 0), 0) || 0
         };
     }));

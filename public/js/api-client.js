@@ -120,6 +120,18 @@ const API = {
         },
         updateFuel: async (id, fuel_level) => {
             return API.vehicles.update(id, { fuel_level });
+        },
+        updateFinancials: async (id, data) => {
+            const response = await fetch(`${API_BASE_URL}/vehicles/${id}/financials`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Failed to update financials');
+            }
+            return response.json();
         }
     },
 

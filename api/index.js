@@ -243,6 +243,45 @@ app.patch('/api/vehicles/:id', requireAuth, requireWriteAccess, async (req, res)
     res.json({ success: true, message: 'Vehicle updated successfully' });
 });
 
+app.patch('/api/vehicles/:id/financials', requireAuth, requireWriteAccess, async (req, res) => {
+    const vehicleId = req.params.id;
+    const { weekly_cash_in, balance, expenses, week1, week2, week3, week4 } = req.body;
+
+    const updateData = { updated_at: new Date().toISOString() };
+    if (weekly_cash_in !== undefined) updateData.weekly_cash_in = weekly_cash_in;
+    if (balance !== undefined) updateData.balance = balance;
+
+    if (Object.keys(updateData).length > 1) {
+        const { error: vErr } = await supabase.from('vehicles').update(updateData).eq('id', vehicleId);
+        if (vErr) return res.status(400).json({ error: vErr.message });
+    }
+
+    // Sync payments if weekly figures are provided
+    if (week1 !== undefined || week2 !== undefined || week3 !== undefined || week4 !== undefined) {
+        await supabase.from('payments').delete().eq('vehicle_id', vehicleId);
+        const now = new Date();
+        const paymentsToInsert = [];
+        if ((parseFloat(week1) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week1), date: new Date(now.getFullYear(), now.getMonth(), 3, 12, 0).toISOString(), recorded_by: req.user.id });
+        if ((parseFloat(week2) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week2), date: new Date(now.getFullYear(), now.getMonth(), 10, 12, 0).toISOString(), recorded_by: req.user.id });
+        if ((parseFloat(week3) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week3), date: new Date(now.getFullYear(), now.getMonth(), 17, 12, 0).toISOString(), recorded_by: req.user.id });
+        if ((parseFloat(week4) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week4), date: new Date(now.getFullYear(), now.getMonth(), 25, 12, 0).toISOString(), recorded_by: req.user.id });
+        if (paymentsToInsert.length > 0) {
+            await supabase.from('payments').insert(paymentsToInsert);
+        }
+    }
+
+    // Sync expenses if provided
+    if (expenses !== undefined) {
+        await supabase.from('maintenance').delete().eq('vehicle_id', vehicleId);
+        const expAmt = parseFloat(expenses) || 0;
+        if (expAmt > 0) {
+            await supabase.from('maintenance').insert([{ vehicle_id: vehicleId, service_type: 'Total Expenses', cost: expAmt, notes: 'Synced operational expenses' }]);
+        }
+    }
+
+    res.json({ success: true, message: 'Financial figures updated successfully' });
+});
+
 app.delete('/api/vehicles/:id', requireAuth, requireAdmin, async (req, res) => {
     const { error } = await supabase.from('vehicles').delete().eq('id', req.params.id);
     if (error) {

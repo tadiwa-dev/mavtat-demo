@@ -549,24 +549,29 @@
             </header>
 
             <!-- Report Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" id="report-stats">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="report-stats">
                 <!-- Populated by JS -->
             </div>
 
             <!-- Report Table -->
             <div class="bg-white rounded-2xl overflow-hidden shadow-card border border-slate-200/60">
-                <div class="px-6 py-5 border-b border-slate-100">
-                    <h3 class="font-bold text-lg font-headline text-on-surface">Net Profit per Vehicle</h3>
+                <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                    <h3 class="font-bold text-lg font-headline text-on-surface">Detailed Vehicle Financial & Performance Summary</h3>
+                    <span class="text-xs text-secondary bg-slate-100 px-3 py-1 rounded-full font-semibold">Live Fleet Metrics</span>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse min-w-[700px]" id="reports-table">
+                    <table class="w-full text-left border-collapse min-w-[1050px]" id="reports-table">
                         <thead>
-                            <tr class="bg-slate-50/80 border-b border-slate-200/60">
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Asset</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Revenue</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Expenses</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Balance</th>
-                                <th class="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Net Profit</th>
+                            <tr class="bg-slate-50/80 border-b border-slate-200/60 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                                <th class="px-5 py-4">Asset</th>
+                                <th class="px-4 py-4">Owner / Type</th>
+                                <th class="px-4 py-4">Status</th>
+                                <th class="px-4 py-4 text-right">Target</th>
+                                <th class="px-4 py-4 text-center">Wk 1–4 Breakdown</th>
+                                <th class="px-4 py-4 text-right">Revenue</th>
+                                <th class="px-4 py-4 text-right">Expenses</th>
+                                <th class="px-4 py-4 text-right">Balance</th>
+                                <th class="px-5 py-4 text-right">Net Profit</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100" id="reports-tbody">
@@ -690,7 +695,7 @@
 
     <!-- Update Cash-In Modal -->
     <div id="modal-update-cashin" class="modal-overlay fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-        <div class="modal-content bg-white rounded-2xl shadow-elevated w-full max-w-sm overflow-hidden border border-slate-200/60">
+        <div class="modal-content bg-white rounded-2xl shadow-elevated w-full max-w-md overflow-hidden border border-slate-200/60">
             <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
                 <h3 class="font-bold font-headline text-lg text-on-surface">Update Weekly Cash-In & Balance</h3>
                 <button onclick="app.closeModal('modal-update-cashin')" class="text-slate-400 hover:bg-slate-100 p-1.5 rounded-xl transition-all">
@@ -709,7 +714,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Weekly Target ($)</label>
-                        <input type="number" id="ci-weekly" required min="0" step="0.01" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none font-bold">
+                        <input type="number" id="ci-weekly" required min="0" step="0.01" oninput="app.calcBalance()" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none font-bold">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Current Balance ($)</label>
@@ -728,10 +733,34 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-primary uppercase tracking-wider mb-1">Record New Payment ($)</label>
-                        <input type="number" id="ci-payment" placeholder="Amount driver brought" step="0.01" class="w-full px-4 py-2.5 bg-white border-2 border-primary/20 rounded-xl text-lg focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none text-primary font-black">
+                        <input type="number" id="ci-payment" placeholder="Amount driver brought" step="0.01" oninput="app.calcBalance()" class="w-full px-4 py-2.5 bg-white border-2 border-primary/20 rounded-xl text-lg focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none text-primary font-black">
                     </div>
-                    <p class="text-[10px] text-secondary italic">If driver pays less than target, the difference is added to balance.</p>
+                    <p class="text-[10px] text-secondary italic">Balance auto-calculates by subtracting amount brought from weekly target.</p>
                 </div>
+                <details class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-xs">
+                    <summary class="font-bold text-slate-700 cursor-pointer flex items-center justify-between py-1 select-none">
+                        <span>Edit Recorded Figures (Wk 1-4)</span>
+                        <span class="text-[9px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-black uppercase">Override</span>
+                    </summary>
+                    <div class="grid grid-cols-2 gap-2 mt-3 pt-2 border-t border-slate-200/60">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase">Week 1 ($)</label>
+                            <input type="number" id="ci-edit-wk1" step="0.01" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase">Week 2 ($)</label>
+                            <input type="number" id="ci-edit-wk2" step="0.01" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase">Week 3 ($)</label>
+                            <input type="number" id="ci-edit-wk3" step="0.01" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase">Week 4 ($)</label>
+                            <input type="number" id="ci-edit-wk4" step="0.01" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800">
+                        </div>
+                    </div>
+                </details>
                 <div class="pt-4 flex gap-3">
                     <button type="button" onclick="app.closeModal('modal-update-cashin')" class="flex-1 px-4 py-2 bg-surface-container-high text-on-surface font-bold rounded-xl hover:bg-surface-variant">Cancel</button>
                     <button type="submit" class="flex-1 px-4 py-2 bg-gradient-to-r from-primary to-indigo-500 text-white font-bold rounded-xl hover:shadow-lg transition-all">Update</button>
@@ -758,15 +787,19 @@
                         <p class="text-xs text-secondary" id="ex-plate">Plate</p>
                     </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Total Expenses ($)</label>
-                    <input type="number" id="ex-amount" required min="0" step="0.01" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none text-primary font-bold text-lg">
-                    <p class="text-[10px] text-secondary mt-1">Fuel + Maintenance + Other costs</p>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-primary uppercase tracking-wider mb-1">Add New Expense Amount ($)</label>
+                        <input type="number" id="ex-add-amount" placeholder="Amount spent (adds to total)" step="0.01" class="w-full px-4 py-2.5 bg-white border-2 border-primary/20 rounded-xl text-base focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none text-primary font-black">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Or Override Total Expenses ($)</label>
+                        <input type="number" id="ex-amount" step="0.01" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Description</label>
                     <input type="text" id="ex-description" placeholder="e.g. Engine oil change, fuel top-up" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none">
-                    <p class="text-[10px] text-secondary mt-1">Brief description of the expense</p>
                 </div>
                 <div class="pt-4 flex gap-3">
                     <button type="button" onclick="app.closeModal('modal-update-expenses')" class="flex-1 px-4 py-2 bg-surface-container-high text-on-surface font-bold rounded-xl hover:bg-surface-variant">Cancel</button>
@@ -813,6 +846,49 @@
                     <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Actual Owner</label>
                     <input type="text" id="ev-owner" placeholder="e.g. John Smith, ABC Company" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none">
                 </div>
+                <details class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-xs">
+                    <summary class="font-bold text-slate-700 cursor-pointer flex items-center justify-between py-1 select-none">
+                        <span>Edit Financial Figures (Post-Input Override)</span>
+                        <span class="text-[9px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-black uppercase">Financials</span>
+                    </summary>
+                    <div class="space-y-3 mt-3 pt-2 border-t border-slate-200/60">
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase">Target ($)</label>
+                                <input type="number" id="ev-target" step="0.01" class="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase">Balance ($)</label>
+                                <input type="number" id="ev-balance" step="0.01" class="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase">Expenses ($)</label>
+                                <input type="number" id="ev-expenses" step="0.01" class="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Weekly Payments ($ Breakdown)</label>
+                            <div class="grid grid-cols-4 gap-1.5">
+                                <div>
+                                    <span class="text-[9px] text-slate-400 block font-bold">Wk 1</span>
+                                    <input type="number" id="ev-wk1" step="0.01" class="w-full px-1.5 py-1 bg-white border border-slate-200 rounded text-xs font-bold">
+                                </div>
+                                <div>
+                                    <span class="text-[9px] text-slate-400 block font-bold">Wk 2</span>
+                                    <input type="number" id="ev-wk2" step="0.01" class="w-full px-1.5 py-1 bg-white border border-slate-200 rounded text-xs font-bold">
+                                </div>
+                                <div>
+                                    <span class="text-[9px] text-slate-400 block font-bold">Wk 3</span>
+                                    <input type="number" id="ev-wk3" step="0.01" class="w-full px-1.5 py-1 bg-white border border-slate-200 rounded text-xs font-bold">
+                                </div>
+                                <div>
+                                    <span class="text-[9px] text-slate-400 block font-bold">Wk 4</span>
+                                    <input type="number" id="ev-wk4" step="0.01" class="w-full px-1.5 py-1 bg-white border border-slate-200 rounded text-xs font-bold">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </details>
                 <div class="pt-4 flex flex-col gap-3">
                     <div class="flex gap-3">
                         <button type="button" onclick="app.closeModal('modal-edit-vehicle')" class="flex-1 px-4 py-2 bg-surface-container-high text-on-surface font-bold rounded-xl hover:bg-surface-variant transition-colors">Cancel</button>
@@ -1553,32 +1629,43 @@
                 const totalExpenses = vehicles.reduce((s, v) => s + (v.expenses || 0), 0);
                 const netProfit = totalRev - totalExpenses;
 
+                const totalBalance = vehicles.reduce((s, v) => s + (v.balance || 0), 0);
+
                 document.getElementById('report-stats').innerHTML = `
-                    <div class="bg-white rounded-2xl border border-slate-200/60 shadow-soft p-6 flex items-center justify-between stat-card">
+                    <div class="bg-white rounded-2xl border border-slate-200/60 shadow-soft p-5 flex items-center justify-between stat-card">
                         <div>
                             <span class="text-slate-400 font-bold text-xs uppercase tracking-wider block mb-1">Total Revenue</span>
-                            <div class="text-3xl font-black text-slate-800 font-headline">${this.formatCurrency(totalRev)}</div>
+                            <div class="text-2xl font-black text-slate-800 font-headline">${this.formatCurrency(totalRev)}</div>
                         </div>
                         <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100/50 flex items-center justify-center text-emerald-500 shadow-sm">
                             <span class="material-symbols-outlined text-[24px]">trending_up</span>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl border border-slate-200/60 shadow-soft p-6 flex items-center justify-between stat-card">
+                    <div class="bg-white rounded-2xl border border-slate-200/60 shadow-soft p-5 flex items-center justify-between stat-card">
                         <div>
                             <span class="text-slate-400 font-bold text-xs uppercase tracking-wider block mb-1">Total Expenses</span>
-                            <div class="text-3xl font-black text-rose-600 font-headline">${this.formatCurrency(totalExpenses)}</div>
+                            <div class="text-2xl font-black text-rose-600 font-headline">${this.formatCurrency(totalExpenses)}</div>
                         </div>
                         <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100/50 flex items-center justify-center text-rose-500 shadow-sm">
                             <span class="material-symbols-outlined text-[24px]">trending_down</span>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl border border-slate-200/60 shadow-soft p-6 flex items-center justify-between stat-card">
+                    <div class="bg-white rounded-2xl border border-slate-200/60 shadow-soft p-5 flex items-center justify-between stat-card">
                         <div>
                             <span class="text-slate-400 font-bold text-xs uppercase tracking-wider block mb-1">Net Fleet Profit</span>
-                            <div class="text-3xl font-black text-primary font-headline">${this.formatCurrency(netProfit)}</div>
+                            <div class="text-2xl font-black text-primary font-headline">${this.formatCurrency(netProfit)}</div>
                         </div>
                         <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-primary shadow-sm">
                             <span class="material-symbols-outlined text-[24px]">payments</span>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-slate-200/60 shadow-soft p-5 flex items-center justify-between stat-card">
+                        <div>
+                            <span class="text-slate-400 font-bold text-xs uppercase tracking-wider block mb-1">Total Fleet Balance</span>
+                            <div class="text-2xl font-black text-amber-600 font-headline">${this.formatCurrency(totalBalance)}</div>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100/50 flex items-center justify-center text-amber-500 shadow-sm">
+                            <span class="material-symbols-outlined text-[24px]">account_balance_wallet</span>
                         </div>
                     </div>
                 `;
@@ -1587,16 +1674,38 @@
                 tbody.innerHTML = vehicles.map(v => {
                     const profit = v.rev - (v.expenses || 0);
                     const profitClass = profit >= 0 ? 'bg-emerald-50 border border-emerald-100 text-emerald-700' : 'bg-rose-50 border border-rose-100 text-rose-700';
+                    let statusBadge = 'bg-slate-100 text-slate-700';
+                    if (v.status === 'Available') statusBadge = 'bg-emerald-50 text-emerald-700 border border-emerald-100';
+                    else if (v.status === 'Active' || v.status === 'Rented') statusBadge = 'bg-indigo-50 text-indigo-700 border border-indigo-100';
+                    else if (v.status === 'Maintenance') statusBadge = 'bg-rose-50 text-rose-700 border border-rose-100';
+                    else if (v.status === 'Low Fuel') statusBadge = 'bg-amber-50 text-amber-700 border border-amber-100';
+
                     return `
                         <tr class="hover:bg-slate-50/80 transition-colors border-b border-slate-100">
-                            <td class="px-6 py-4">
+                            <td class="px-5 py-4">
                                 <div class="font-bold text-sm text-slate-800">${v.name}</div>
                                 <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">${v.plate}</div>
                             </td>
-                            <td class="px-6 py-4 text-right font-semibold text-slate-800">${this.formatCurrency(v.rev)}</td>
-                            <td class="px-6 py-4 text-right text-rose-600 font-medium">${this.formatCurrency(v.expenses || 0)}</td>
-                            <td class="px-6 py-4 text-right text-slate-800 font-medium">${this.formatCurrency(v.balance || 0)}</td>
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-4 py-4">
+                                <div class="font-semibold text-xs text-slate-700">${v.actual_owner || 'N/A'}</div>
+                                <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 mt-0.5">${v.type}</span>
+                            </td>
+                            <td class="px-4 py-4">
+                                <span class="inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusBadge}">${v.status}</span>
+                            </td>
+                            <td class="px-4 py-4 text-right font-semibold text-slate-700">${this.formatCurrency(v.weeklyCashIn || 0)}</td>
+                            <td class="px-4 py-4 text-center">
+                                <div class="inline-flex items-center gap-1 text-[11px] font-bold bg-slate-50 border border-slate-200/80 p-1 rounded-xl">
+                                    <span class="px-1.5 py-0.5 bg-white rounded shadow-2xs text-slate-700" title="Week 1">W1: $${v.week1||0}</span>
+                                    <span class="px-1.5 py-0.5 bg-white rounded shadow-2xs text-slate-700" title="Week 2">W2: $${v.week2||0}</span>
+                                    <span class="px-1.5 py-0.5 bg-white rounded shadow-2xs text-slate-700" title="Week 3">W3: $${v.week3||0}</span>
+                                    <span class="px-1.5 py-0.5 bg-white rounded shadow-2xs text-slate-700" title="Week 4">W4: $${v.week4||0}</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-4 text-right font-bold text-slate-800">${this.formatCurrency(v.rev)}</td>
+                            <td class="px-4 py-4 text-right text-rose-600 font-semibold">${this.formatCurrency(v.expenses || 0)}</td>
+                            <td class="px-4 py-4 text-right text-slate-800 font-bold">${this.formatCurrency(v.balance || 0)}</td>
+                            <td class="px-5 py-4 text-right">
                                 <span class="inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${profitClass}">
                                     ${this.formatCurrency(profit)}
                                 </span>
@@ -1605,14 +1714,17 @@
                     `;
                 }).join('');
 
-                const totalBalance = vehicles.reduce((s, v) => s + (v.balance || 0), 0);
                 document.getElementById('reports-tfoot').innerHTML = `
                     <tr class="bg-slate-50 border-t border-slate-200">
-                        <td class="px-6 py-4 uppercase text-[10px] tracking-widest text-slate-500 font-bold">Total</td>
-                        <td class="px-6 py-4 text-right text-lg font-black text-slate-800">${this.formatCurrency(totalRev)}</td>
-                        <td class="px-6 py-4 text-right text-rose-600 font-black text-sm">${this.formatCurrency(totalExpenses)}</td>
-                        <td class="px-6 py-4 text-right text-slate-800 font-black text-sm">${this.formatCurrency(totalBalance)}</td>
-                        <td class="px-6 py-4 text-right text-primary text-lg font-black">${this.formatCurrency(netProfit)}</td>
+                        <td class="px-5 py-4 uppercase text-[10px] tracking-widest text-slate-500 font-bold" colspan="3">Total Fleet Summary</td>
+                        <td class="px-4 py-4 text-right text-sm font-black text-slate-700">${this.formatCurrency(vehicles.reduce((s, v) => s + (v.weeklyCashIn || 0), 0))}</td>
+                        <td class="px-4 py-4 text-center text-xs font-bold text-slate-600">
+                            W1: $${vehicles.reduce((s, v) => s + (v.week1 || 0), 0)} | W2: $${vehicles.reduce((s, v) => s + (v.week2 || 0), 0)} | W3: $${vehicles.reduce((s, v) => s + (v.week3 || 0), 0)} | W4: $${vehicles.reduce((s, v) => s + (v.week4 || 0), 0)}
+                        </td>
+                        <td class="px-4 py-4 text-right text-base font-black text-slate-800">${this.formatCurrency(totalRev)}</td>
+                        <td class="px-4 py-4 text-right text-rose-600 font-black text-sm">${this.formatCurrency(totalExpenses)}</td>
+                        <td class="px-4 py-4 text-right text-slate-800 font-black text-sm">${this.formatCurrency(totalBalance)}</td>
+                        <td class="px-5 py-4 text-right text-primary text-base font-black">${this.formatCurrency(netProfit)}</td>
                     </tr>
                 `;
             },
@@ -1700,6 +1812,21 @@
                 this.showToast(`Status updated to "${newStatus}" for ${vehicle.plate}.`);
             },
 
+            calcBalance() {
+                const targetVal = document.getElementById('ci-weekly').value;
+                const balanceEl = document.getElementById('ci-balance');
+                const paymentVal = document.getElementById('ci-payment').value;
+                
+                if (targetVal !== '' && paymentVal !== '' && balanceEl) {
+                    const target = parseFloat(targetVal) || 0;
+                    const payment = parseFloat(paymentVal) || 0;
+                    const id = document.getElementById('ci-id').value;
+                    const vehicle = this.state.vehicles.find(v => v.id == id);
+                    const initialBal = (vehicle ? vehicle.balance : 0) || 0;
+                    balanceEl.value = (initialBal + (target - payment)).toFixed(2);
+                }
+            },
+
             openUpdateCashIn(id) {
                 const vehicle = this.state.vehicles.find(v => v.id == id);
                 if(!vehicle || vehicle.weeklyCashIn === undefined) return;
@@ -1708,9 +1835,16 @@
                 document.getElementById('ci-name').innerText = vehicle.name;
                 document.getElementById('ci-plate').innerText = vehicle.plate;
                 document.getElementById('ci-weekly').value = vehicle.weeklyCashIn;
-                document.getElementById('ci-balance').value = vehicle.balance;
+                document.getElementById('ci-balance').value = vehicle.balance || 0;
+                
+                document.getElementById('ci-edit-wk1').value = vehicle.week1 || 0;
+                document.getElementById('ci-edit-wk2').value = vehicle.week2 || 0;
+                document.getElementById('ci-edit-wk3').value = vehicle.week3 || 0;
+                document.getElementById('ci-edit-wk4').value = vehicle.week4 || 0;
+
                 const weekEl = document.getElementById('ci-week');
                 if (weekEl) weekEl.value = String(this.getCurrentWeekNumber());
+                document.getElementById('ci-payment').value = '';
                 
                 this.openModal('modal-update-cashin');
             },
@@ -1719,18 +1853,53 @@
                 e.preventDefault();
                 const id = document.getElementById('ci-id').value;
                 const vehicle = this.state.vehicles.find(v => v.id == id);
-                const target = parseFloat(document.getElementById('ci-weekly').value);
-                const currentBalance = parseFloat(document.getElementById('ci-balance').value);
+                if (!vehicle) return;
+
+                const target = parseFloat(document.getElementById('ci-weekly').value) || 0;
+                const currentBalance = parseFloat(document.getElementById('ci-balance').value) || 0;
                 const payment = parseFloat(document.getElementById('ci-payment').value) || 0;
                 const weekVal = parseInt(document.getElementById('ci-week')?.value) || 4;
 
+                const wk1 = parseFloat(document.getElementById('ci-edit-wk1').value) || 0;
+                const wk2 = parseFloat(document.getElementById('ci-edit-wk2').value) || 0;
+                const wk3 = parseFloat(document.getElementById('ci-edit-wk3').value) || 0;
+                const wk4 = parseFloat(document.getElementById('ci-edit-wk4').value) || 0;
+
                 let newBalance = currentBalance;
-                if (payment > 0) {
-                    newBalance = currentBalance + (target - payment);
+                if (payment > 0 && document.getElementById('ci-balance').value == (vehicle.balance || 0)) {
+                    newBalance = (vehicle.balance || 0) + (target - payment);
                 }
 
+                // Optimistic UI updates (0ms latency)
+                vehicle.weeklyCashIn = target;
+                vehicle.balance = newBalance;
+                vehicle.week1 = wk1;
+                vehicle.week2 = wk2;
+                vehicle.week3 = wk3;
+                vehicle.week4 = wk4;
+                if (payment > 0) {
+                    vehicle[`week${weekVal}`] = (vehicle[`week${weekVal}`] || 0) + payment;
+                }
+                vehicle.rev = (vehicle.week1 || 0) + (vehicle.week2 || 0) + (vehicle.week3 || 0) + (vehicle.week4 || 0);
+
+                let dateStr = new Date().toISOString();
+                this.state.activities.unshift({
+                    time: 'Just Now', 
+                    recorded_at: dateStr,
+                    car: vehicle.plate, 
+                    type: payment > 0 ? `Wk ${weekVal} Payment Recorded: $${payment}` : `Cash-In & Balance Updated: $${newBalance}`, 
+                    status: 'Completed'
+                });
+
+                this.closeModal('modal-update-cashin');
+                document.getElementById('ci-payment').value = '';
+                this.renderRegistry();
+                this.renderDashboard();
+                this.renderReports();
+                this.showToast(payment > 0 ? `Wk ${weekVal} payment recorded. New balance: $${newBalance.toFixed(2)}` : 'Cash-in & weekly figures updated.');
+
+                // Background sync
                 try {
-                    let dateStr = new Date().toISOString();
                     const now = new Date();
                     if (weekVal !== this.getCurrentWeekNumber()) {
                         if (weekVal === 1) dateStr = new Date(now.getFullYear(), now.getMonth(), 3, 12, 0, 0).toISOString();
@@ -1738,37 +1907,20 @@
                         else if (weekVal === 3) dateStr = new Date(now.getFullYear(), now.getMonth(), 17, 12, 0, 0).toISOString();
                         else dateStr = new Date(now.getFullYear(), now.getMonth(), 25, 12, 0, 0).toISOString();
                     }
-
                     if (payment > 0) {
                         await API.payments.create({ vehicle_id: id, amount: payment, date: dateStr });
-                        vehicle[`week${weekVal}`] = (vehicle[`week${weekVal}`] || 0) + payment;
                     }
-
-                    await API.vehicles.update(id, {
-                        weekly_cash_in: target,
-                        balance: newBalance
+                    await API.vehicles.updateFinancials(id, {
+                        weekly_cash_in: vehicle.weeklyCashIn,
+                        balance: vehicle.balance,
+                        week1: vehicle.week1,
+                        week2: vehicle.week2,
+                        week3: vehicle.week3,
+                        week4: vehicle.week4
                     });
-
-                    vehicle.weeklyCashIn = target;
-                    vehicle.balance = newBalance;
-                    vehicle.rev = (vehicle.rev || 0) + payment;
-                    
-                    this.state.activities.unshift({
-                        time: 'Just Now', 
-                        recorded_at: dateStr,
-                        car: vehicle.plate, 
-                        type: payment > 0 ? `Wk ${weekVal} Payment Recorded: $${payment}` : `Target Updated: $${target}`, 
-                        status: 'Completed'
-                    });
-
-                    this.closeModal('modal-update-cashin');
-                    document.getElementById('ci-payment').value = '';
-                    this.renderRegistry();
-                    this.renderDashboard();
-                    this.showToast(payment > 0 ? `Wk ${weekVal} payment of $${payment} recorded. New balance: $${newBalance}` : 'Cash-in settings updated.');
                 } catch (error) {
-                    console.error('Error saving cash-in:', error);
-                    this.showToast('Failed to save data: ' + error.message);
+                    console.error('Error syncing cash-in:', error);
+                    this.showToast('Background sync warning: ' + error.message);
                 }
             },
 
@@ -1780,6 +1932,7 @@
                 document.getElementById('ex-name').innerText = vehicle.name;
                 document.getElementById('ex-plate').innerText = vehicle.plate;
                 document.getElementById('ex-amount').value = vehicle.expenses || 0;
+                document.getElementById('ex-add-amount').value = '';
                 document.getElementById('ex-description').value = '';
                 
                 this.openModal('modal-update-expenses');
@@ -1789,33 +1942,48 @@
                 e.preventDefault();
                 const id = document.getElementById('ex-id').value;
                 const vehicle = this.state.vehicles.find(v => v.id == id);
-                const newExpenses = parseFloat(document.getElementById('ex-amount').value);
-                const description = document.getElementById('ex-description').value.trim() || 'Manual expense update';
+                if (!vehicle) return;
 
+                const addAmtVal = document.getElementById('ex-add-amount').value;
+                const overrideAmtVal = document.getElementById('ex-amount').value;
+                const description = document.getElementById('ex-description').value.trim() || 'Operational Expense';
+
+                let newExpenses = vehicle.expenses || 0;
+                let added = 0;
+                if (addAmtVal !== '') {
+                    added = parseFloat(addAmtVal) || 0;
+                    newExpenses = (vehicle.expenses || 0) + added;
+                } else if (overrideAmtVal !== '') {
+                    newExpenses = parseFloat(overrideAmtVal) || 0;
+                }
+
+                // Optimistic UI updates
+                vehicle.expenses = newExpenses;
+                this.state.activities.unshift({
+                    time: 'Just Now', car: vehicle.plate, type: `Expense Updated: $${newExpenses.toFixed(2)}`, status: 'Completed'
+                });
+
+                this.closeModal('modal-update-expenses');
+                this.renderRegistry();
+                this.renderDashboard();
+                this.renderReports();
+                this.showToast(`Expenses updated to $${newExpenses.toFixed(2)} for ${vehicle.plate}.`);
+
+                // Background sync
                 try {
-                    // Create maintenance record in backend
-                    await API.maintenance.create({
-                        vehicle_id: id,
-                        service_type: 'Operational Expense',
-                        cost: newExpenses,
-                        notes: description
-                    });
-
-                    const oldExpenses = vehicle.expenses || 0;
-                    vehicle.expenses = oldExpenses + newExpenses; // Add to existing expenses
-                    
-                    this.state.activities.unshift({
-                        time: 'Just Now', car: vehicle.plate, type: `Expense Recorded: $${newExpenses.toFixed(2)}`, status: 'Completed'
-                    });
-
-                    this.closeModal('modal-update-expenses');
-                    this.renderRegistry();
-                    this.renderDashboard();
-                    this.renderReports();
-                    this.showToast(`Expense recorded for ${vehicle.plate}.`);
+                    if (added > 0) {
+                        await API.maintenance.create({
+                            vehicle_id: id,
+                            service_type: 'Operational Expense',
+                            cost: added,
+                            notes: description
+                        });
+                    } else {
+                        await API.vehicles.updateFinancials(id, { expenses: newExpenses });
+                    }
                 } catch (error) {
-                    console.error('Error saving expenses:', error);
-                    this.showToast('Failed to save expense: ' + error.message);
+                    console.error('Error syncing expenses:', error);
+                    this.showToast('Background sync warning: ' + error.message);
                 }
             },
 
@@ -1830,7 +1998,14 @@
                 document.getElementById('ev-fuel').value = vehicle.fuel;
                 document.getElementById('ev-owner').value = vehicle.actual_owner || '';
                 
-                // Show/Hide delete button based on admin role
+                document.getElementById('ev-target').value = vehicle.weeklyCashIn || 0;
+                document.getElementById('ev-balance').value = vehicle.balance || 0;
+                document.getElementById('ev-expenses').value = vehicle.expenses || 0;
+                document.getElementById('ev-wk1').value = vehicle.week1 || 0;
+                document.getElementById('ev-wk2').value = vehicle.week2 || 0;
+                document.getElementById('ev-wk3').value = vehicle.week3 || 0;
+                document.getElementById('ev-wk4').value = vehicle.week4 || 0;
+                
                 const deleteContainer = document.getElementById('delete-vehicle-container');
                 if (this.state.currentUser && this.state.currentUser.role === 'admin') {
                     deleteContainer.classList.remove('hidden');
@@ -1850,31 +2025,18 @@
                     return;
                 }
 
+                // Optimistic UI deletion
+                this.state.vehicles = this.state.vehicles.filter(v => v.id != id);
+                this.closeModal('modal-edit-vehicle');
+                this.renderAll();
+                this.loadUniqueOwners();
+                this.showToast(`${vehicle.name} has been removed from the registry.`);
+
                 try {
                     await API.vehicles.delete(id);
-                    
-                    // Reload vehicles from backend to stay in sync
-                    const vehiclesData = await API.vehicles.list();
-                    this.state.vehicles = vehiclesData.map(v => ({
-                        id: v.id,
-                        name: `${v.make} ${v.model}`,
-                        plate: v.license_plate,
-                        type: v.type.charAt(0).toUpperCase() + v.type.slice(1),
-                        mileage: 0,
-                        fuel: v.fuel_level || 100,
-                        status: v.status.charAt(0).toUpperCase() + v.status.replace(/_/g, ' ').slice(1),
-                        rev: 0,
-                        expenses: 0,
-                        ...(v.type === 'taxi' || v.type === 'rental' ? { weeklyCashIn: 0, balance: 0 } : {})
-                    }));
-
-                    this.closeModal('modal-edit-vehicle');
-                    this.renderAll();
-                    await this.loadUniqueOwners();
-                    this.showToast(`${vehicle.name} has been removed from the registry.`);
                 } catch (error) {
                     console.error('Error deleting vehicle:', error);
-                    this.showToast('Failed to delete vehicle: ' + error.message);
+                    this.showToast('Error syncing delete: ' + error.message);
                 }
             },
 
@@ -1882,14 +2044,52 @@
                 e.preventDefault();
                 const id = document.getElementById('ev-id').value;
                 const vehicle = this.state.vehicles.find(v => v.id == id);
+                if (!vehicle) return;
+
                 const newName = document.getElementById('ev-name').value;
                 const newPlate = document.getElementById('ev-plate').value.toUpperCase();
                 const newType = document.getElementById('ev-type').value;
                 const newFuel = parseInt(document.getElementById('ev-fuel').value);
                 const newOwner = document.getElementById('ev-owner').value.trim() || null;
 
+                const target = parseFloat(document.getElementById('ev-target').value) || 0;
+                const bal = parseFloat(document.getElementById('ev-balance').value) || 0;
+                const exp = parseFloat(document.getElementById('ev-expenses').value) || 0;
+                const wk1 = parseFloat(document.getElementById('ev-wk1').value) || 0;
+                const wk2 = parseFloat(document.getElementById('ev-wk2').value) || 0;
+                const wk3 = parseFloat(document.getElementById('ev-wk3').value) || 0;
+                const wk4 = parseFloat(document.getElementById('ev-wk4').value) || 0;
+
+                // Optimistic UI updates
+                vehicle.name = newName;
+                vehicle.plate = newPlate;
+                vehicle.type = newType;
+                vehicle.fuel = newFuel;
+                vehicle.actual_owner = newOwner || 'N/A';
+                vehicle.weeklyCashIn = target;
+                vehicle.balance = bal;
+                vehicle.expenses = exp;
+                vehicle.week1 = wk1;
+                vehicle.week2 = wk2;
+                vehicle.week3 = wk3;
+                vehicle.week4 = wk4;
+                vehicle.rev = wk1 + wk2 + wk3 + wk4;
+
+                if (newFuel < 20 && vehicle.status !== 'Maintenance') {
+                    vehicle.status = 'Low Fuel';
+                }
+
+                this.state.activities.unshift({
+                    time: 'Just Now', car: newPlate, type: 'Vehicle Details & Financials Updated', status: 'Completed'
+                });
+
+                this.closeModal('modal-edit-vehicle');
+                this.renderAll();
+                this.loadUniqueOwners();
+                this.showToast(`Details updated for ${newPlate}.`);
+
+                // Background sync
                 try {
-                    // Persist to backend
                     await API.vehicles.update(id, {
                         make: newName.split(' ')[0],
                         model: newName.split(' ').slice(1).join(' ') || 'Unknown',
@@ -1898,35 +2098,21 @@
                         fuel_level: newFuel,
                         actual_owner: newOwner
                     });
-
-                    vehicle.name = newName;
-                    vehicle.plate = newPlate;
-                    vehicle.type = newType;
-                    vehicle.fuel = newFuel;
-                    vehicle.actual_owner = newOwner || 'N/A';
-
-                    if (newFuel < 20 && vehicle.status !== 'Maintenance') {
-                        vehicle.status = 'Low Fuel';
-                    }
-
-                    this.state.activities.unshift({
-                        time: 'Just Now', car: newPlate, type: 'Vehicle Details Updated', status: 'Completed'
+                    await API.vehicles.updateFinancials(id, {
+                        weekly_cash_in: target,
+                        balance: bal,
+                        expenses: exp,
+                        week1: wk1, week2: wk2, week3: wk3, week4: wk4
                     });
-
-                    this.closeModal('modal-edit-vehicle');
-                    this.renderRegistry();
-                    this.renderDashboard();
-                    await this.loadUniqueOwners();
-                    this.showToast(`Details updated for ${newPlate}.`);
                 } catch (error) {
-                    console.error('Error saving vehicle details:', error);
-                    this.showToast('Failed to save details: ' + error.message);
+                    console.error('Error syncing vehicle details:', error);
+                    this.showToast('Background sync warning: ' + error.message);
                 }
             },
 
             // Exports
             exportCSV() {
-                let csvContent = "Asset,Plate,Type,Owner,Revenue,Expenses,Balance,Net Profit\r\n";
+                let csvContent = "Asset,Plate,Type,Owner,Status,Weekly Target,Week 1,Week 2,Week 3,Week 4,Revenue,Expenses,Balance,Net Profit\r\n";
 
                 const selectedOwner = document.getElementById('filter-report-owner').value;
                 let vehicles = this.state.vehicles;
@@ -1938,9 +2124,8 @@
                     const profit = v.rev - (v.expenses || 0);
                     const owner = v.actual_owner || 'N/A';
                     const balance = v.balance || 0;
-                    // Properly escape CSV strings to handle commas and quotes
                     const escapeCSV = (str) => `"${String(str).replace(/"/g, '""')}"`;
-                    const row = `${escapeCSV(v.name)},${escapeCSV(v.plate)},${escapeCSV(v.type)},${escapeCSV(owner)},${v.rev},${v.expenses || 0},${balance},${profit}`;
+                    const row = `${escapeCSV(v.name)},${escapeCSV(v.plate)},${escapeCSV(v.type)},${escapeCSV(owner)},${escapeCSV(v.status)},${v.weeklyCashIn||0},${v.week1||0},${v.week2||0},${v.week3||0},${v.week4||0},${v.rev},${v.expenses || 0},${balance},${profit}`;
                     csvContent += row + "\r\n";
                 });
 
@@ -1948,7 +2133,7 @@
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
                 link.setAttribute("href", url);
-                link.setAttribute("download", "fleet_report.csv");
+                link.setAttribute("download", "fleet_report_detailed.csv");
                 document.body.appendChild(link);
                 link.click();
                 
@@ -1957,17 +2142,17 @@
                     URL.revokeObjectURL(url);
                 }, 100);
                 
-                this.showToast("CSV Export downloaded.");
+                this.showToast("Detailed CSV Export downloaded.");
             },
 
             exportPDF() {
                 try {
                     const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF();
+                    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape for detailed table
                     
                     doc.setFontSize(20);
-                    doc.setTextColor(0, 64, 161); // Primary color
-                    doc.text("MAVTAT Motors - Fleet Report", 14, 22);
+                    doc.setTextColor(0, 64, 161);
+                    doc.text("MAVTAT Motors - Detailed Fleet Report", 14, 22);
                     
                     doc.setFontSize(10);
                     doc.setTextColor(100);
@@ -1985,8 +2170,10 @@
                         const owner = v.actual_owner || 'N/A';
                         return [
                             `${v.name}\n(${v.plate})`,
-                            v.type,
-                            owner,
+                            `${v.type}\n${owner}`,
+                            v.status,
+                            this.formatCurrency(v.weeklyCashIn || 0),
+                            `W1:$${v.week1||0}\nW2:$${v.week2||0}\nW3:$${v.week3||0}\nW4:$${v.week4||0}`,
                             this.formatCurrency(v.rev),
                             this.formatCurrency(v.expenses || 0),
                             this.formatCurrency(v.balance || 0),
@@ -1995,17 +2182,19 @@
                     });
 
                     doc.autoTable({
-                        startY: 40,
-                        head: [['Asset Details', 'Type', 'Owner', 'Revenue', 'Expenses', 'Balance', 'Net Profit']],
+                        startY: 38,
+                        head: [['Asset', 'Type / Owner', 'Status', 'Target', 'Wk 1-4 Breakdown', 'Revenue', 'Expenses', 'Balance', 'Net Profit']],
                         body: tableData,
                         theme: 'striped',
                         headStyles: { fillColor: [0, 64, 161] },
-                        styles: { fontSize: 9, cellPadding: 4 },
+                        styles: { fontSize: 8, cellPadding: 3 },
                         columnStyles: {
                             3: { halign: 'right' },
-                            4: { halign: 'right' },
+                            4: { halign: 'center' },
                             5: { halign: 'right' },
-                            6: { halign: 'right', fontStyle: 'bold' }
+                            6: { halign: 'right' },
+                            7: { halign: 'right' },
+                            8: { halign: 'right', fontStyle: 'bold' }
                         }
                     });
 

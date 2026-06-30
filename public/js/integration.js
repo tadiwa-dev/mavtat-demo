@@ -20,10 +20,12 @@ app.init = async function() {
     console.log('🔄 Loading data from backend...');
     
     try {
-        // Load vehicles from API
-        const vehiclesData = await API.vehicles.list();
-        const reportsData = await API.reports.revenue();
-        const summaryData = await API.reports.summary();
+        // Load data in parallel for speed
+        const [vehiclesData, reportsData, activitiesData] = await Promise.all([
+            API.vehicles.list(),
+            API.reports.revenue(),
+            API.activities.list()
+        ]);
 
         // Transform API data to match app's expected format
         app.state.vehicles = vehiclesData.map(v => ({
@@ -60,7 +62,6 @@ app.init = async function() {
         });
         
         // Load activities from cloud
-        const activitiesData = await API.activities.list();
         app.state.activities = activitiesData.map(a => ({
             time: this.formatTime(a.recorded_at),
             recorded_at: a.recorded_at,
@@ -83,7 +84,7 @@ app.init = async function() {
     this.renderAll();
     if (this.state.isLoggedIn) {
         this.startWalkthroughIfFirstTime();
-        await this.loadUniqueOwners();
+        this.loadUniqueOwners();
     }
 };
 
@@ -100,7 +101,7 @@ app.formatTime = function(dateStr) {
     return date.toLocaleDateString();
 };
 
-// Override addVehicle to save to backend
+// Override addVehicle to save to backend (Optimistic UI)
 const originalAddVehicle = app.addVehicle;
 app.addVehicle = async function(e) {
     e.preventDefault();
@@ -109,8 +110,30 @@ app.addVehicle = async function(e) {
     const license_plate = document.getElementById('v-plate').value.toUpperCase();
     const type = document.getElementById('v-type').value.toLowerCase();
     const actual_owner = document.getElementById('v-actual-owner').value.trim() || null;
+    const tempId = 'temp_' + Date.now();
+
+    // Optimistic insert
+    const newVeh = {
+        id: tempId,
+        name: `${make} ${model}`,
+        plate: license_plate,
+        type: type.charAt(0).toUpperCase() + type.slice(1),
+        mileage: 0,
+        fuel: 100,
+        status: 'Available',
+        actual_owner: actual_owner || 'N/A',
+        rev: 0,
+        expenses: 0,
+        week1: 0, week2: 0, week3: 0, week4: 0,
+        ...(type === 'taxi' || type === 'rental' ? { weeklyCashIn: 0, balance: 0 } : {})
+    };
+    app.state.vehicles.unshift(newVeh);
+    this.closeModal('modal-add-vehicle');
+    this.renderAll();
+    this.loadUniqueOwners();
+    this.showToast(`${make} ${model} added to registry.`);
+
     try {
-        // Save to backend
         const result = await API.vehicles.create({
             make,
             model: model || 'Unknown',
@@ -119,36 +142,18 @@ app.addVehicle = async function(e) {
             mileage: 0,
             actual_owner
         });
-
-        // Reload vehicles
-        const vehiclesData = await API.vehicles.list();
-        app.state.vehicles = vehiclesData.map(v => ({
-            id: v.id,
-            name: `${v.make} ${v.model}`,
-            plate: v.license_plate,
-            type: v.type.charAt(0).toUpperCase() + v.type.slice(1),
-            mileage: 0,
-            fuel: v.fuel_level || 100,
-            status: v.status.charAt(0).toUpperCase() + v.status.replace(/_/g, ' ').slice(1),
-            actual_owner: v.actual_owner || 'N/A',
-            rev: 0,
-            expenses: 0,
-            ...(v.type === 'taxi' || v.type === 'rental' ? { weeklyCashIn: 0, balance: 0 } : {})
-        }));
-
-        this.closeModal('modal-add-vehicle');
-        this.renderAll();
-        await this.loadUniqueOwners();
-        this.showToast(`${make} ${model} added to registry.`);
+        newVeh.id = result.id;
     } catch (error) {
         console.error('Error adding vehicle:', error);
-        this.showToast('Failed to add vehicle: ' + error.message);
+        app.state.vehicles = app.state.vehicles.filter(v => v.id !== tempId);
+        this.renderAll();
+        this.showToast('Failed to sync new vehicle: ' + error.message);
     }
 };
 
 
 
-// Override saveStatus to save to backend
+// Override saveStatus to save to backend (Optimistic UI)
 const originalSaveStatus = app.saveStatus;
 app.saveStatus = async function(e) {
     e.preventDefault();
@@ -156,8 +161,19 @@ app.saveStatus = async function(e) {
     const vehicle = this.state.vehicles.find(v => v.id == id);
     const newStatus = document.getElementById('us-new').value;
 
+    const oldStatus = vehicle.status;
+    vehicle.status = newStatus;
+    
+    this.state.activities.unshift({
+        time: 'Just Now', car: vehicle.plate, type: `Status Changed: ${oldStatus} → ${newStatus}`, status: 'Completed'
+    });
+
+    this.closeModal('modal-update-status');
+    this.renderRegistry();
+    this.renderDashboard();
+    this.showToast(`Status updated to "${newStatus}" for ${vehicle.plate}.`);
+
     try {
-        // Map display status to API status
         const statusMap = {
             'Available': 'available',
             'Active': 'active',
@@ -166,25 +182,12 @@ app.saveStatus = async function(e) {
             'Low Fuel': 'low_fuel',
             'Inactive': 'inactive'
         };
-
-        // Update backend
         await API.vehicles.updateStatus(id, statusMap[newStatus] || newStatus.toLowerCase());
-        
-        // Update local state
-        const oldStatus = vehicle.status;
-        vehicle.status = newStatus;
-        
-        this.state.activities.unshift({
-            time: 'Just Now', car: vehicle.plate, type: `Status Changed: ${oldStatus} → ${newStatus}`, status: 'Completed'
-        });
-
-        this.closeModal('modal-update-status');
-        this.renderRegistry();
-        this.renderDashboard();
-        this.showToast(`Status updated to "${newStatus}" for ${vehicle.plate}.`);
     } catch (error) {
         console.error('Error updating status:', error);
-        this.showToast('Failed to update status: ' + error.message);
+        vehicle.status = oldStatus;
+        this.renderRegistry();
+        this.showToast('Failed to sync status: ' + error.message);
     }
 };
 

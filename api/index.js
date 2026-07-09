@@ -449,7 +449,7 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
     const reports = await Promise.all(vehicles.map(async (v) => {
         const { data: rentals } = await supabase.from('rental').select('price').eq('vehicle_id', v.id);
         const { data: payments } = await supabase.from('payments').select('amount, date').eq('vehicle_id', v.id);
-        const { data: maintenance } = await supabase.from('maintenance').select('cost').eq('vehicle_id', v.id);
+        const { data: maintenance } = await supabase.from('maintenance').select('cost, service_type, notes, date').eq('vehicle_id', v.id).order('date', { ascending: false });
 
         const rentalIncome = rentals?.reduce((sum, r) => sum + (r.price || 0), 0) || 0;
         const paymentIncome = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
@@ -477,7 +477,8 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
             week2,
             week3,
             week4,
-            total_maintenance_cost: maintenance?.reduce((sum, m) => sum + (m.cost || 0), 0) || 0
+            total_maintenance_cost: maintenance?.reduce((sum, m) => sum + (m.cost || 0), 0) || 0,
+            expense_descriptions: maintenance || []
         };
     }));
 

@@ -39,6 +39,7 @@ app.init = async function() {
             actual_owner: v.actual_owner || 'N/A',
             rev: 0, // Will be calculated from reports
             expenses: 0, // Will be calculated from maintenance
+            expense_descriptions: [],
             week1: 0,
             week2: 0,
             week3: 0,
@@ -54,6 +55,15 @@ app.init = async function() {
             if (vehicle) {
                 vehicle.rev = report.total_revenue || 0;
                 vehicle.expenses = report.total_maintenance_cost || 0;
+                vehicle.expense_descriptions = report.expense_descriptions || [];
+                if (vehicle.expenses > 0 && (!vehicle.expense_descriptions || vehicle.expense_descriptions.length === 0)) {
+                    vehicle.expense_descriptions = [{
+                        service_type: 'Operational Expense',
+                        cost: vehicle.expenses,
+                        notes: 'General operational expenses',
+                        date: new Date().toISOString()
+                    }];
+                }
                 vehicle.week1 = report.week1 || 0;
                 vehicle.week2 = report.week2 || 0;
                 vehicle.week3 = report.week3 || 0;
@@ -76,6 +86,63 @@ app.init = async function() {
         console.error('❌ Failed to load data:', error);
         // Fall back to existing data if API fails
         console.log('📦 Using fallback demo data...');
+        if (!app.state.vehicles || app.state.vehicles.length === 0) {
+            app.state.vehicles = [
+                {
+                    id: 'demo-1',
+                    name: 'Toyota Corolla',
+                    plate: 'ABG 4521',
+                    type: 'Taxi',
+                    mileage: 45200,
+                    fuel: 85,
+                    status: 'Active',
+                    actual_owner: 'John Smith',
+                    rev: 450,
+                    expenses: 65,
+                    expense_descriptions: [
+                        { service_type: 'Operational Expense', cost: 65, notes: 'Engine oil change & top-up', date: new Date().toISOString() }
+                    ],
+                    week1: 120, week2: 110, week3: 110, week4: 110,
+                    weeklyCashIn: 150, balance: 30
+                },
+                {
+                    id: 'demo-2',
+                    name: 'Nissan NV350',
+                    plate: 'ADX 8892',
+                    type: 'Rental',
+                    mileage: 82100,
+                    fuel: 60,
+                    status: 'Available',
+                    actual_owner: 'MAVTAT Fleet',
+                    rev: 620,
+                    expenses: 150,
+                    expense_descriptions: [
+                        { service_type: 'Operational Expense', cost: 120, notes: 'Brake pad replacement & wheel alignment', date: new Date().toISOString() },
+                        { service_type: 'Operational Expense', cost: 30, notes: 'Car wash and detailing', date: new Date().toISOString() }
+                    ],
+                    week1: 150, week2: 160, week3: 150, week4: 160,
+                    weeklyCashIn: 200, balance: 80
+                },
+                {
+                    id: 'demo-3',
+                    name: 'Honda Fit',
+                    plate: 'ACJ 3319',
+                    type: 'Taxi',
+                    mileage: 61400,
+                    fuel: 40,
+                    status: 'Maintenance',
+                    actual_owner: 'Grace Moyo',
+                    rev: 280,
+                    expenses: 210,
+                    expense_descriptions: [
+                        { service_type: 'Operational Expense', cost: 180, notes: 'New battery installation', date: new Date().toISOString() },
+                        { service_type: 'Operational Expense', cost: 30, notes: 'Spark plug replacement', date: new Date().toISOString() }
+                    ],
+                    week1: 90, week2: 95, week3: 95, week4: 0,
+                    weeklyCashIn: 120, balance: -40
+                }
+            ];
+        }
     }
 
     // Call the original init
@@ -124,6 +191,7 @@ app.addVehicle = async function(e) {
         actual_owner: actual_owner || 'N/A',
         rev: 0,
         expenses: 0,
+        expense_descriptions: [],
         week1: 0, week2: 0, week3: 0, week4: 0,
         ...(type === 'taxi' || type === 'rental' ? { weeklyCashIn: 0, balance: 0 } : {})
     };

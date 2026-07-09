@@ -258,8 +258,10 @@ app.patch('/api/vehicles/:id/financials', requireAuth, requireWriteAccess, async
 
     // Sync payments if weekly figures are provided
     if (week1 !== undefined || week2 !== undefined || week3 !== undefined || week4 !== undefined) {
-        await supabase.from('payments').delete().eq('vehicle_id', vehicleId);
         const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+        await supabase.from('payments').delete().eq('vehicle_id', vehicleId).gte('date', startOfMonth).lte('date', endOfMonth);
         const paymentsToInsert = [];
         if ((parseFloat(week1) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week1), date: new Date(now.getFullYear(), now.getMonth(), 3, 12, 0).toISOString(), recorded_by: req.user.id });
         if ((parseFloat(week2) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week2), date: new Date(now.getFullYear(), now.getMonth(), 10, 12, 0).toISOString(), recorded_by: req.user.id });
@@ -272,10 +274,13 @@ app.patch('/api/vehicles/:id/financials', requireAuth, requireWriteAccess, async
 
     // Sync expenses if provided
     if (expenses !== undefined) {
-        await supabase.from('maintenance').delete().eq('vehicle_id', vehicleId);
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+        await supabase.from('maintenance').delete().eq('vehicle_id', vehicleId).gte('date', startOfMonth).lte('date', endOfMonth);
         const expAmt = parseFloat(expenses) || 0;
         if (expAmt > 0) {
-            await supabase.from('maintenance').insert([{ vehicle_id: vehicleId, service_type: 'Total Expenses', cost: expAmt, notes: 'Synced operational expenses' }]);
+            await supabase.from('maintenance').insert([{ vehicle_id: vehicleId, service_type: 'Total Expenses', cost: expAmt, notes: 'Synced operational expenses', date: new Date().toISOString() }]);
         }
     }
 
@@ -446,17 +451,35 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
     const { data: vehicles, error: vErr } = await supabase.from('vehicles').select('id, make, model, license_plate, type, balance');
     if (vErr) return res.status(500).json({ error: vErr.message });
 
+    const monthParam = req.query.month;
+    const yearParam = req.query.year;
+    const isAllTime = monthParam === 'all';
+    const targetMonth = isAllTime ? null : (parseInt(monthParam) || (new Date().getMonth() + 1));
+    const targetYear = isAllTime ? null : (parseInt(yearParam) || new Date().getFullYear());
+
+    const isInTargetPeriod = (dateStr) => {
+        if (isAllTime) return true;
+        if (!dateStr) return targetMonth === (new Date().getMonth() + 1) && targetYear === new Date().getFullYear();
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return targetMonth === (new Date().getMonth() + 1) && targetYear === new Date().getFullYear();
+        return (d.getMonth() + 1) === targetMonth && d.getFullYear() === targetYear;
+    };
+
     const reports = await Promise.all(vehicles.map(async (v) => {
-        const { data: rentals } = await supabase.from('rental').select('price').eq('vehicle_id', v.id);
+        const { data: rentals } = await supabase.from('rental').select('price, start_date').eq('vehicle_id', v.id);
         const { data: payments } = await supabase.from('payments').select('amount, date').eq('vehicle_id', v.id);
         const { data: maintenance } = await supabase.from('maintenance').select('cost, service_type, notes, date').eq('vehicle_id', v.id).order('date', { ascending: false });
 
-        const rentalIncome = rentals?.reduce((sum, r) => sum + (r.price || 0), 0) || 0;
-        const paymentIncome = payments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+        const filteredRentals = (rentals || []).filter(r => isInTargetPeriod(r.start_date));
+        const filteredPayments = (payments || []).filter(p => isInTargetPeriod(p.date));
+        const filteredMaintenance = (maintenance || []).filter(m => isInTargetPeriod(m.date));
+
+        const rentalIncome = filteredRentals.reduce((sum, r) => sum + (r.price || 0), 0);
+        const paymentIncome = filteredPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
         const totalRevenue = rentalIncome + paymentIncome;
 
         let week1 = 0, week2 = 0, week3 = 0, week4 = 0;
-        payments?.forEach(p => {
+        filteredPayments.forEach(p => {
             const amt = p.amount || 0;
             const day = p.date ? new Date(p.date).getDate() : 1;
             if (day <= 7) week1 += amt;
@@ -471,14 +494,14 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
             license_plate: v.license_plate,
             type: v.type,
             balance: v.balance || 0,
-            total_rentals: (rentals?.length || 0) + (payments?.length || 0),
+            total_rentals: filteredRentals.length + filteredPayments.length,
             total_revenue: totalRevenue,
             week1,
             week2,
             week3,
             week4,
-            total_maintenance_cost: maintenance?.reduce((sum, m) => sum + (m.cost || 0), 0) || 0,
-            expense_descriptions: maintenance || []
+            total_maintenance_cost: filteredMaintenance.reduce((sum, m) => sum + (m.cost || 0), 0),
+            expense_descriptions: filteredMaintenance
         };
     }));
 

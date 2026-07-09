@@ -209,8 +209,12 @@ const API = {
     },
 
     reports: {
-        revenue: async () => {
-            const response = await fetch(`${API_BASE_URL}/reports/revenue`, {
+        revenue: async (month, year) => {
+            const params = new URLSearchParams();
+            if (month) params.append('month', month);
+            if (year) params.append('year', year);
+            const queryString = params.toString() ? `?${params.toString()}` : '';
+            const response = await fetch(`${API_BASE_URL}/reports/revenue${queryString}`, {
                 headers: getAuthHeaders()
             });
             if (!response.ok) throw new Error('Failed to fetch revenue report');

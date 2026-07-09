@@ -536,6 +536,9 @@
                     <p class="text-sm text-slate-500 font-medium">Revenue, costs, and profit analytics.</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
+                    <select id="filter-report-month" onchange="app.changeReportMonth()" class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-primary focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
+                        <option value="">Loading Months...</option>
+                    </select>
                     <select id="filter-report-owner" onchange="app.renderReports()" class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
                         <option value="">All Owners</option>
                     </select>
@@ -1638,7 +1641,61 @@
                 return [];
             },
 
+            async changeReportMonth() {
+                const monthSelect = document.getElementById('filter-report-month');
+                if (!monthSelect) return;
+                const monthVal = monthSelect.value;
+                const yearVal = new Date().getFullYear();
+
+                if (this.state.isLoggedIn) {
+                    try {
+                        const reportsData = await API.reports.revenue(monthVal === 'all' ? 'all' : monthVal, yearVal);
+                        reportsData.forEach(report => {
+                            const vehicle = this.state.vehicles.find(v => v.id == report.id);
+                            if (vehicle) {
+                                vehicle.rev = report.total_revenue || 0;
+                                vehicle.expenses = report.total_maintenance_cost || 0;
+                                vehicle.expense_descriptions = report.expense_descriptions || [];
+                                if (vehicle.expenses > 0 && (!vehicle.expense_descriptions || vehicle.expense_descriptions.length === 0)) {
+                                    vehicle.expense_descriptions = [{
+                                        service_type: 'Operational Expense',
+                                        cost: vehicle.expenses,
+                                        notes: 'General operational expenses',
+                                        date: new Date().toISOString()
+                                    }];
+                                }
+                                vehicle.week1 = report.week1 || 0;
+                                vehicle.week2 = report.week2 || 0;
+                                vehicle.week3 = report.week3 || 0;
+                                vehicle.week4 = report.week4 || 0;
+                            }
+                        });
+                        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                        const monthName = monthVal === 'all' ? 'All Time (Lifetime)' : `${months[parseInt(monthVal) - 1]} ${yearVal}`;
+                        this.showToast(`Updated reports for: ${monthName}`);
+                    } catch (err) {
+                        console.error('Failed to update monthly reports:', err);
+                        this.showToast('Could not fetch monthly report data.');
+                    }
+                }
+                this.renderReports();
+            },
+
             renderReports() {
+                const monthSelect = document.getElementById('filter-report-month');
+                if (monthSelect && monthSelect.options.length <= 1) {
+                    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                    const currentM = new Date().getMonth() + 1;
+                    monthSelect.innerHTML = `
+                        <option value="${currentM}">Current Month (${months[currentM - 1]})</option>
+                        <option value="all">All Months (Lifetime)</option>
+                        <optgroup label="Select Specific Month">
+                            ${months.map((m, idx) => `<option value="${idx + 1}">${m}</option>`).join('')}
+                        </optgroup>
+                    `;
+                    monthSelect.value = currentM;
+                }
+
                 const selectedOwner = document.getElementById('filter-report-owner').value;
                 let vehicles = this.state.vehicles;
                 if (selectedOwner) {

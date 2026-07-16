@@ -159,14 +159,18 @@ app.init = async function() {
 // Helper for relative time formatting
 app.formatTime = function(dateStr) {
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
     
-    if (diffMins < -1) return date.toLocaleDateString();
+    // Future dates are legacy records with synthetic timestamps
+    if (diffMs < 0) return 'Recorded';
+    
     if (diffMins < 1) return 'Just Now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+    if (diffMins < 10080) return `${Math.floor(diffMins / 1440)}d ago`;
     return date.toLocaleDateString();
 };
 

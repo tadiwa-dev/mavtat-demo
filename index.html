@@ -1446,7 +1446,7 @@
                             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 border border-emerald-100 text-emerald-600">
                                 ${a.status}
                             </span>
-                            <p class="text-[10px] text-slate-400 mt-1 font-medium">${a.time}</p>
+                            <p class="text-[10px] text-slate-400 mt-1 font-medium">${(typeof app.formatTime === 'function' && a.recorded_at) ? app.formatTime(a.recorded_at) : a.time}</p>
                         </div>
                     </div>
                     `;

@@ -959,6 +959,7 @@
                 if (this.state.isLoggedIn) {
                     this.startWalkthroughIfFirstTime();
                     await this.loadUniqueOwners();
+                    this.startActivityTimer();
                 }
             },
 
@@ -1132,6 +1133,7 @@
                     this.state.isLoggedIn = false;
                     this.state.currentUser = null;
                     this.clearSessionTimer();
+                    this.stopActivityTimer();
                     this.updateUIForAuth();
                     this.showLoginModal();
                     this.showToast('Logged out successfully');
@@ -1153,6 +1155,37 @@
                 if (this.state.sessionTimeout) {
                     clearTimeout(this.state.sessionTimeout);
                     this.state.sessionTimeout = null;
+                }
+            },
+
+            startActivityTimer() {
+                if (this.activityInterval) clearInterval(this.activityInterval);
+                this.activityInterval = setInterval(() => {
+                    if (this.state.isLoggedIn && this.state.currentView === 'dashboard') {
+                        this.renderDashboard();
+                    }
+                }, 60000);
+            },
+
+            stopActivityTimer() {
+                if (this.activityInterval) {
+                    clearInterval(this.activityInterval);
+                    this.activityInterval = null;
+                }
+            },
+
+            getReportPeriodText() {
+                const monthSelect = document.getElementById('filter-report-month');
+                if (!monthSelect) return 'Current Month';
+                const monthVal = monthSelect.value;
+                const yearVal = new Date().getFullYear();
+                const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                
+                if (monthVal === 'all') {
+                    return 'All Time (Lifetime)';
+                } else {
+                    const monthIndex = parseInt(monthVal) - 1;
+                    return `${months[monthIndex]} ${yearVal}`;
                 }
             },
 
@@ -1375,11 +1408,16 @@
                 // Group activities into weeks
                 const weekBuckets = { 'Week 4': [], 'Week 3': [], 'Week 2': [], 'Week 1': [] };
                 this.state.activities.forEach(a => {
-                    const day = a.recorded_at ? new Date(a.recorded_at).getDate() : new Date().getDate();
-                    if (day <= 7) weekBuckets['Week 1'].push(a);
-                    else if (day <= 14) weekBuckets['Week 2'].push(a);
-                    else if (day <= 21) weekBuckets['Week 3'].push(a);
-                    else weekBuckets['Week 4'].push(a);
+                    const pDate = a.recorded_at ? new Date(a.recorded_at) : new Date();
+                    let weekNum = a.recorded_at ? pDate.getSeconds() : 0;
+                    if (weekNum < 1 || weekNum > 4) {
+                        const day = pDate.getDate();
+                        if (day <= 7) weekNum = 1;
+                        else if (day <= 14) weekNum = 2;
+                        else if (day <= 21) weekNum = 3;
+                        else weekNum = 4;
+                    }
+                    weekBuckets[`Week ${weekNum}`].push(a);
                 });
 
                 const buildItemHtml = (a) => {
@@ -1992,13 +2030,10 @@
 
                 // Background sync
                 try {
-                    const now = new Date();
-                    if (weekVal !== this.getCurrentWeekNumber()) {
-                        if (weekVal === 1) dateStr = new Date(now.getFullYear(), now.getMonth(), 3, 12, 0, 0).toISOString();
-                        else if (weekVal === 2) dateStr = new Date(now.getFullYear(), now.getMonth(), 10, 12, 0, 0).toISOString();
-                        else if (weekVal === 3) dateStr = new Date(now.getFullYear(), now.getMonth(), 17, 12, 0, 0).toISOString();
-                        else dateStr = new Date(now.getFullYear(), now.getMonth(), 25, 12, 0, 0).toISOString();
-                    }
+                    const d = new Date();
+                    d.setSeconds(weekVal);
+                    d.setMilliseconds(0);
+                    dateStr = d.toISOString();
                     if (payment > 0) {
                         await API.payments.create({ vehicle_id: id, amount: payment, date: dateStr });
                     }
@@ -2267,7 +2302,9 @@
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
                 link.setAttribute("href", url);
-                link.setAttribute("download", "fleet_report_detailed.csv");
+                const periodText = this.getReportPeriodText();
+                const sanitizedPeriod = periodText.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                link.setAttribute("download", `fleet_report_detailed_${sanitizedPeriod}.csv`);
                 document.body.appendChild(link);
                 link.click();
                 
@@ -2292,7 +2329,8 @@
                     doc.setTextColor(100);
                     const selectedOwner = document.getElementById('filter-report-owner').value;
                     const ownerText = selectedOwner ? ` - ${selectedOwner}` : '';
-                    doc.text(`Generated: ${new Date().toLocaleString()}${ownerText}`, 14, 30);
+                    const periodText = this.getReportPeriodText();
+                    doc.text(`Report Period: ${periodText} | Generated: ${new Date().toLocaleString()}${ownerText}`, 14, 30);
 
                     let vehicles = this.state.vehicles;
                     if (selectedOwner) {
@@ -2343,7 +2381,8 @@
                     const url = URL.createObjectURL(pdfBlob);
                     const link = document.createElement("a");
                     link.setAttribute("href", url);
-                    link.setAttribute("download", "fleet_financial_report.pdf");
+                    const sanitizedPeriod = periodText.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                    link.setAttribute("download", `fleet_financial_report_${sanitizedPeriod}.pdf`);
                     document.body.appendChild(link);
                     link.click();
                     

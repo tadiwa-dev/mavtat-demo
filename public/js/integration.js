@@ -152,6 +152,7 @@ app.init = async function() {
     if (this.state.isLoggedIn) {
         this.startWalkthroughIfFirstTime();
         this.loadUniqueOwners();
+        this.startActivityTimer();
     }
 };
 
@@ -162,6 +163,7 @@ app.formatTime = function(dateStr) {
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
     
+    if (diffMins < -1) return date.toLocaleDateString();
     if (diffMins < 1) return 'Just Now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;

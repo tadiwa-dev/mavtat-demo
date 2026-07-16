@@ -262,11 +262,19 @@ app.patch('/api/vehicles/:id/financials', requireAuth, requireWriteAccess, async
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
         await supabase.from('payments').delete().eq('vehicle_id', vehicleId).gte('date', startOfMonth).lte('date', endOfMonth);
+        
+        const getPaymentDate = (weekNum) => {
+            const d = new Date();
+            d.setSeconds(weekNum);
+            d.setMilliseconds(0);
+            return d.toISOString();
+        };
+
         const paymentsToInsert = [];
-        if ((parseFloat(week1) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week1), date: new Date(now.getFullYear(), now.getMonth(), 3, 12, 0).toISOString(), recorded_by: req.user.id });
-        if ((parseFloat(week2) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week2), date: new Date(now.getFullYear(), now.getMonth(), 10, 12, 0).toISOString(), recorded_by: req.user.id });
-        if ((parseFloat(week3) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week3), date: new Date(now.getFullYear(), now.getMonth(), 17, 12, 0).toISOString(), recorded_by: req.user.id });
-        if ((parseFloat(week4) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week4), date: new Date(now.getFullYear(), now.getMonth(), 25, 12, 0).toISOString(), recorded_by: req.user.id });
+        if ((parseFloat(week1) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week1), date: getPaymentDate(1), recorded_by: req.user.id });
+        if ((parseFloat(week2) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week2), date: getPaymentDate(2), recorded_by: req.user.id });
+        if ((parseFloat(week3) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week3), date: getPaymentDate(3), recorded_by: req.user.id });
+        if ((parseFloat(week4) || 0) > 0) paymentsToInsert.push({ vehicle_id: vehicleId, amount: parseFloat(week4), date: getPaymentDate(4), recorded_by: req.user.id });
         if (paymentsToInsert.length > 0) {
             await supabase.from('payments').insert(paymentsToInsert);
         }
@@ -481,10 +489,18 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
         let week1 = 0, week2 = 0, week3 = 0, week4 = 0;
         filteredPayments.forEach(p => {
             const amt = p.amount || 0;
-            const day = p.date ? new Date(p.date).getDate() : 1;
-            if (day <= 7) week1 += amt;
-            else if (day <= 14) week2 += amt;
-            else if (day <= 21) week3 += amt;
+            const pDate = p.date ? new Date(p.date) : null;
+            let weekNum = pDate ? pDate.getSeconds() : 1;
+            if (weekNum < 1 || weekNum > 4) {
+                const day = pDate ? pDate.getDate() : 1;
+                if (day <= 7) weekNum = 1;
+                else if (day <= 14) weekNum = 2;
+                else if (day <= 21) weekNum = 3;
+                else weekNum = 4;
+            }
+            if (weekNum === 1) week1 += amt;
+            else if (weekNum === 2) week2 += amt;
+            else if (weekNum === 3) week3 += amt;
             else week4 += amt;
         });
 

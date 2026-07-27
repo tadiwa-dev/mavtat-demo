@@ -511,6 +511,7 @@
                                 <th id="th-wk2" class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 2</th>
                                 <th id="th-wk3" class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 3</th>
                                 <th id="th-wk4" class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Wk 4</th>
+                                <th class="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Trip Income</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Balance</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Expenses</th>
                                 <th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
@@ -542,6 +543,9 @@
                     <select id="filter-report-owner" onchange="app.renderReports()" class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
                         <option value="">All Owners</option>
                     </select>
+                    <button onclick="app.openCloseBooksModal()" class="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all hover:shadow-lg shadow-sm active:scale-95">
+                        <span class="material-symbols-outlined text-sm">lock_clock</span> Close Books
+                    </button>
                     <button onclick="app.exportCSV()" class="flex items-center gap-2 bg-white text-primary border border-slate-200 px-4 py-2.5 rounded-xl font-bold text-sm transition-all hover:bg-slate-50 hover:shadow-sm">
                         <span class="material-symbols-outlined text-sm">grid_on</span> Excel (CSV)
                     </button>
@@ -571,12 +575,14 @@
                                 <th class="px-4 py-4">Status</th>
                                 <th class="px-4 py-4 text-right">Target</th>
                                 <th class="px-4 py-4 text-center">Wk 1–4 Breakdown</th>
+                                <th class="px-4 py-4 text-right">Trip Income</th>
                                 <th class="px-4 py-4 text-right">Revenue</th>
                                 <th class="px-4 py-4 text-right">Expenses & Description</th>
                                 <th class="px-4 py-4 text-right">Balance</th>
                                 <th class="px-5 py-4 text-right">Net Profit</th>
                             </tr>
                         </thead>
+
                         <tbody class="divide-y divide-slate-100" id="reports-tbody">
                             <!-- Populated by JS -->
                         </tbody>
@@ -908,6 +914,112 @@
             </form>
         </div>
     </div>
+
+    <!-- Add Trip Income Modal -->
+    <div id="modal-add-trip" class="modal-overlay fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-2xl shadow-elevated w-full max-w-md overflow-hidden border border-slate-200/60">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-primary font-bold">
+                        <span class="material-symbols-outlined text-[20px]">add_road</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold font-headline text-base text-on-surface">Record Trip Income</h3>
+                        <p class="text-[11px] text-slate-500 font-medium">Manually enter a trip with date selector</p>
+                    </div>
+                </div>
+                <button onclick="app.closeModal('modal-add-trip')" class="text-slate-400 hover:bg-slate-100 p-1.5 rounded-xl transition-all">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+            <form id="form-add-trip" onsubmit="app.saveTrip(event)" class="p-6 space-y-4">
+                <input type="hidden" id="trip-v-id">
+                
+                <div class="bg-indigo-50/60 border border-indigo-100 p-3.5 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">Selected Asset</span>
+                        <span id="trip-vehicle-info" class="font-bold text-slate-800 text-sm">Loading Vehicle...</span>
+                    </div>
+                    <span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 font-black text-[10px] rounded uppercase tracking-wider">Trip Earnings</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">Trip Income Amount ($)</label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                        <input type="number" id="trip-amount" required step="0.01" min="0.01" placeholder="0.00" class="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">Trip Date (Date Selector)</label>
+                    <input type="date" id="trip-date" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1.5">Description / Route (Optional)</label>
+                    <input type="text" id="trip-desc" placeholder="e.g. Airport Transfer, City Express Trip" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none">
+                </div>
+
+                <div class="pt-3 flex gap-3">
+                    <button type="button" onclick="app.closeModal('modal-add-trip')" class="flex-1 px-4 py-2.5 bg-surface-container-high text-on-surface font-bold text-sm rounded-xl hover:bg-surface-variant transition-colors">Cancel</button>
+                    <button type="submit" class="flex-1 px-4 py-2.5 bg-gradient-to-r from-primary to-indigo-600 text-white font-bold text-sm rounded-xl hover:shadow-lg transition-all">Record Trip Income</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Close Books Modal -->
+    <div id="modal-close-books" class="modal-overlay fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-2xl shadow-elevated w-full max-w-md overflow-hidden border border-slate-200/60">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 font-bold">
+                        <span class="material-symbols-outlined text-[20px]">lock_clock</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold font-headline text-base text-on-surface">Close Books for Month</h3>
+                        <p class="text-[11px] text-slate-500 font-medium">Archive metrics & start new period</p>
+                    </div>
+                </div>
+                <button onclick="app.closeModal('modal-close-books')" class="text-slate-400 hover:bg-slate-100 p-1.5 rounded-xl transition-all">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="bg-amber-50 border border-amber-200/80 p-4 rounded-xl text-amber-900 text-xs leading-relaxed flex items-start gap-3">
+                    <span class="material-symbols-outlined text-amber-600 shrink-0 text-base mt-0.5">info</span>
+                    <div>
+                        <p class="font-bold text-amber-950 mb-1">Confirm Month Close & Archival</p>
+                        <p>Closing the books for <strong id="close-books-target-label" class="font-black text-amber-900">this month</strong> will save an official historical snapshot of all cash-in, trips, expenses, revenue, and net profit. Active month metrics will reset for the new month, but all historical data remains 100% accessible anytime.</p>
+                    </div>
+                </div>
+
+                <div id="close-books-summary-box" class="bg-slate-50 border border-slate-200/80 p-4 rounded-xl space-y-2 text-xs">
+                    <div class="flex justify-between items-center font-semibold text-slate-600">
+                        <span>Total Month Revenue:</span>
+                        <span id="close-books-rev-val" class="font-black text-slate-800">$0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center font-semibold text-slate-600">
+                        <span>Total Month Expenses:</span>
+                        <span id="close-books-exp-val" class="font-black text-rose-600">$0.00</span>
+                    </div>
+                    <div class="border-t border-slate-200 pt-2 flex justify-between items-center font-bold text-slate-800 text-sm">
+                        <span>Net Profit to Archive:</span>
+                        <span id="close-books-profit-val" class="font-black text-primary">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex gap-3">
+                    <button type="button" onclick="app.closeModal('modal-close-books')" class="flex-1 px-4 py-2.5 bg-surface-container-high text-on-surface font-bold text-sm rounded-xl hover:bg-surface-variant transition-colors">Cancel</button>
+                    <button type="button" onclick="app.confirmCloseBooks()" class="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-1.5">
+                        <span class="material-symbols-outlined text-sm">lock</span> Close & Archive Books
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Toast Container -->
     <div id="toast-container"></div>
@@ -1614,6 +1726,14 @@
                                 </button>
                             ` : ''}
                         </td>`).join('') + `
+                        <td class="px-3 py-4 text-center bg-indigo-50/20">
+                            <p class="font-black text-xs text-indigo-900">${this.formatCurrency(v.tripIncome || 0)}</p>
+                            ${this.state.currentUser.role !== 'viewer' ? `
+                                <button onclick="event.stopPropagation(); app.openAddTrip('${v.id}')" class="mt-1 inline-flex items-center gap-0.5 px-2 py-0.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded text-[9px] font-black transition-all shadow-sm">
+                                    <span class="material-symbols-outlined text-[10px]">add</span> Trip
+                                </button>
+                            ` : ''}
+                        </td>
                         <td class="px-4 py-4">
                             <span class="sm-label">Balance</span>
                             <p class="text-sm font-bold ${v.balance < 0 ? 'text-rose-600' : 'text-slate-800'}">${this.formatCurrency(v.balance)}</p>
@@ -1623,6 +1743,14 @@
                         <td class="px-3 py-4 text-center text-slate-300 text-xs">-</td>
                         <td class="px-3 py-4 text-center text-slate-300 text-xs">-</td>
                         <td class="px-3 py-4 text-center text-slate-300 text-xs">-</td>
+                        <td class="px-3 py-4 text-center bg-indigo-50/20">
+                            <p class="font-black text-xs text-indigo-900">${this.formatCurrency(v.tripIncome || 0)}</p>
+                            ${this.state.currentUser.role !== 'viewer' ? `
+                                <button onclick="event.stopPropagation(); app.openAddTrip('${v.id}')" class="mt-1 inline-flex items-center gap-0.5 px-2 py-0.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded text-[9px] font-black transition-all shadow-sm">
+                                    <span class="material-symbols-outlined text-[10px]">add</span> Trip
+                                </button>
+                            ` : ''}
+                        </td>
                         <td class="px-4 py-4 text-slate-400 text-xs"><span class="sm-label">Balance</span>-</td>
                         `}
                         <td class="px-4 py-4">
@@ -1719,19 +1847,86 @@
                 this.renderReports();
             },
 
+            async loadClosedBooksMonths() {
+                const monthSelect = document.getElementById('filter-report-month');
+                if (!monthSelect) return;
+
+                const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                const currentM = new Date().getMonth() + 1;
+                const currentY = new Date().getFullYear();
+
+                let closedBooks = [];
+                try {
+                    closedBooks = await API.books.listClosed();
+                } catch (e) {}
+
+                let closedOptions = '';
+                if (closedBooks && closedBooks.length > 0) {
+                    closedOptions = `<optgroup label="📁 Closed Month Archives">
+                        ${closedBooks.map(b => {
+                            const mName = months[b.month - 1] || `Month ${b.month}`;
+                            return `<option value="${b.month}_${b.year}">📁 Closed: ${mName} ${b.year}</option>`;
+                        }).join('')}
+                    </optgroup>`;
+                }
+
+                monthSelect.innerHTML = `
+                    <option value="${currentM}">Current Active Month (${months[currentM - 1]} ${currentY})</option>
+                    <option value="all">All Months (Lifetime)</option>
+                    <optgroup label="Select Live Month">
+                        ${months.map((m, idx) => `<option value="${idx + 1}">${m}</option>`).join('')}
+                    </optgroup>
+                    ${closedOptions}
+                `;
+            },
+
+            async changeReportMonth() {
+                const monthSelect = document.getElementById('filter-report-month');
+                if (!monthSelect) return;
+                const val = monthSelect.value;
+                const now = new Date();
+                let monthVal = val;
+                let yearVal = now.getFullYear();
+
+                if (val.includes('_')) {
+                    const parts = val.split('_');
+                    monthVal = parts[0];
+                    yearVal = parts[1];
+                }
+
+                if (monthVal) {
+                    try {
+                        const reportsData = await API.reports.revenue(monthVal, yearVal);
+                        reportsData.forEach(report => {
+                            const vehicle = this.state.vehicles.find(v => v.id == report.id);
+                            if (vehicle) {
+                                vehicle.rev = report.total_revenue || 0;
+                                vehicle.expenses = report.total_maintenance_cost || 0;
+                                vehicle.expense_descriptions = report.expense_descriptions || [];
+                                vehicle.week1 = report.week1 || 0;
+                                vehicle.week2 = report.week2 || 0;
+                                vehicle.week3 = report.week3 || 0;
+                                vehicle.week4 = report.week4 || 0;
+                                vehicle.tripIncome = report.trip_income || 0;
+                                vehicle.trips = report.trips || [];
+                            }
+                        });
+                        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                        const isClosed = val.includes('_');
+                        const monthName = monthVal === 'all' ? 'All Time (Lifetime)' : `${months[parseInt(monthVal) - 1]} ${yearVal}`;
+                        this.showToast(`${isClosed ? '📁 Loaded Closed Archives' : 'Updated reports'} for: ${monthName}`);
+                    } catch (err) {
+                        console.error('Failed to update monthly reports:', err);
+                        this.showToast('Could not fetch monthly report data.');
+                    }
+                }
+                this.renderReports();
+            },
+
             renderReports() {
                 const monthSelect = document.getElementById('filter-report-month');
                 if (monthSelect && monthSelect.options.length <= 1) {
-                    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                    const currentM = new Date().getMonth() + 1;
-                    monthSelect.innerHTML = `
-                        <option value="${currentM}">Current Month (${months[currentM - 1]})</option>
-                        <option value="all">All Months (Lifetime)</option>
-                        <optgroup label="Select Specific Month">
-                            ${months.map((m, idx) => `<option value="${idx + 1}">${m}</option>`).join('')}
-                        </optgroup>
-                    `;
-                    monthSelect.value = currentM;
+                    this.loadClosedBooksMonths();
                 }
 
                 const selectedOwner = document.getElementById('filter-report-owner').value;
@@ -1829,6 +2024,7 @@
                                     <span class="px-1.5 py-0.5 bg-white rounded shadow-2xs text-slate-700" title="Week 4">W4: $${v.week4||0}</span>
                                 </div>
                             </td>
+                            <td class="px-4 py-4 text-right font-bold text-indigo-700 align-top font-headline">${this.formatCurrency(v.tripIncome || 0)}</td>
                             <td class="px-4 py-4 text-right font-bold text-slate-800 align-top">${this.formatCurrency(v.rev)}</td>
                             <td class="px-4 py-4 text-right align-top">
                                 <div class="text-rose-600 font-black text-sm">${this.formatCurrency(v.expenses || 0)}</div>
@@ -1851,6 +2047,7 @@
                         <td class="px-4 py-4 text-center text-xs font-bold text-slate-600">
                             W1: $${vehicles.reduce((s, v) => s + (v.week1 || 0), 0)} | W2: $${vehicles.reduce((s, v) => s + (v.week2 || 0), 0)} | W3: $${vehicles.reduce((s, v) => s + (v.week3 || 0), 0)} | W4: $${vehicles.reduce((s, v) => s + (v.week4 || 0), 0)}
                         </td>
+                        <td class="px-4 py-4 text-right text-sm font-black text-indigo-700">${this.formatCurrency(vehicles.reduce((s, v) => s + (v.tripIncome || 0), 0))}</td>
                         <td class="px-4 py-4 text-right text-base font-black text-slate-800">${this.formatCurrency(totalRev)}</td>
                         <td class="px-4 py-4 text-right text-rose-600 font-black text-sm">${this.formatCurrency(totalExpenses)}</td>
                         <td class="px-4 py-4 text-right text-slate-800 font-black text-sm">${this.formatCurrency(totalBalance)}</td>
@@ -1878,6 +2075,108 @@
                 }
                 if(id === 'modal-edit-vehicle') {
                     document.getElementById('form-edit-vehicle').reset();
+                }
+                if(id === 'modal-add-trip') {
+                    document.getElementById('form-add-trip').reset();
+                }
+            },
+
+            openAddTrip(id) {
+                const vehicle = this.state.vehicles.find(v => v.id == id);
+                if (!vehicle) return;
+
+                document.getElementById('trip-v-id').value = vehicle.id;
+                document.getElementById('trip-vehicle-info').innerText = `${vehicle.name} (${vehicle.plate})`;
+                document.getElementById('trip-date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('trip-amount').value = '';
+                document.getElementById('trip-desc').value = '';
+                this.openModal('modal-add-trip');
+            },
+
+            async saveTrip(e) {
+                e.preventDefault();
+                const id = document.getElementById('trip-v-id').value;
+                const vehicle = this.state.vehicles.find(v => v.id == id);
+                const amount = parseFloat(document.getElementById('trip-amount').value) || 0;
+                const date = document.getElementById('trip-date').value;
+                const description = document.getElementById('trip-desc').value.trim() || 'Trip Income';
+
+                if (!vehicle || amount <= 0) return;
+
+                // Optimistic UI update
+                if (!vehicle.trips) vehicle.trips = [];
+                vehicle.trips.unshift({ amount, date, description });
+                vehicle.tripIncome = (vehicle.tripIncome || 0) + amount;
+                vehicle.rev = (vehicle.rev || 0) + amount;
+
+                this.closeModal('modal-add-trip');
+                this.renderRegistry();
+                this.renderReports();
+                this.renderDashboard();
+                this.showToast(`Recorded trip income of $${amount.toFixed(2)} for ${vehicle.name} on ${date}.`);
+
+                try {
+                    await API.trips.create({
+                        vehicle_id: id,
+                        amount,
+                        date,
+                        description
+                    });
+                } catch (error) {
+                    console.error('Error recording trip:', error);
+                    this.showToast('Failed to sync trip income: ' + error.message);
+                }
+            },
+
+            openCloseBooksModal() {
+                const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                const now = new Date();
+                const currentMonthName = months[now.getMonth()];
+                const currentYear = now.getFullYear();
+
+                document.getElementById('close-books-target-label').innerText = `${currentMonthName} ${currentYear}`;
+
+                const totalRev = this.state.vehicles.reduce((s, v) => s + (v.rev || 0), 0);
+                const totalExp = this.state.vehicles.reduce((s, v) => s + (v.expenses || 0), 0);
+                const netProfit = totalRev - totalExp;
+
+                document.getElementById('close-books-rev-val').innerText = this.formatCurrency(totalRev);
+                document.getElementById('close-books-exp-val').innerText = this.formatCurrency(totalExp);
+                document.getElementById('close-books-profit-val').innerText = this.formatCurrency(netProfit);
+
+                this.openModal('modal-close-books');
+            },
+
+            async confirmCloseBooks() {
+                const now = new Date();
+                const m = now.getMonth() + 1;
+                const y = now.getFullYear();
+
+                this.closeModal('modal-close-books');
+                this.showToast('Closing books and archiving monthly financial metrics...');
+
+                try {
+                    const result = await API.books.close(m, y);
+                    this.showToast(result.message || 'Books successfully closed and archived!');
+                    
+                    // Reset active figures for vehicles
+                    this.state.vehicles.forEach(v => {
+                        v.week1 = 0;
+                        v.week2 = 0;
+                        v.week3 = 0;
+                        v.week4 = 0;
+                        v.tripIncome = 0;
+                        v.trips = [];
+                        v.rev = 0;
+                        v.expenses = 0;
+                        v.expense_descriptions = [];
+                    });
+
+                    await this.loadClosedBooksMonths();
+                    this.renderAll();
+                } catch (error) {
+                    console.error('Error closing books:', error);
+                    this.showToast('Failed to close books: ' + error.message);
                 }
             },
 
@@ -2277,7 +2576,7 @@
 
             // Exports
             exportCSV() {
-                let csvContent = "Asset,Plate,Type,Owner,Status,Weekly Target,Week 1,Week 2,Week 3,Week 4,Revenue,Expenses,Expense Descriptions,Balance,Net Profit\r\n";
+                let csvContent = "Asset,Plate,Type,Owner,Status,Weekly Target,Week 1,Week 2,Week 3,Week 4,Trip Income,Revenue,Expenses,Expense Descriptions,Balance,Net Profit\r\n";
 
                 const selectedOwner = document.getElementById('filter-report-owner').value;
                 let vehicles = this.state.vehicles;
@@ -2294,7 +2593,7 @@
                     const expenseDescText = expenseList.length > 0
                         ? expenseList.map(item => `${item.description} ($${parseFloat(item.cost).toFixed(2)})`).join('; ')
                         : 'No expenses recorded';
-                    const row = `${escapeCSV(v.name)},${escapeCSV(v.plate)},${escapeCSV(v.type)},${escapeCSV(owner)},${escapeCSV(v.status)},${v.weeklyCashIn||0},${v.week1||0},${v.week2||0},${v.week3||0},${v.week4||0},${v.rev},${v.expenses || 0},${escapeCSV(expenseDescText)},${balance},${profit}`;
+                    const row = `${escapeCSV(v.name)},${escapeCSV(v.plate)},${escapeCSV(v.type)},${escapeCSV(owner)},${escapeCSV(v.status)},${v.weeklyCashIn||0},${v.week1||0},${v.week2||0},${v.week3||0},${v.week4||0},${v.tripIncome||0},${v.rev},${v.expenses || 0},${escapeCSV(expenseDescText)},${balance},${profit}`;
                     csvContent += row + "\r\n";
                 });
 
@@ -2350,6 +2649,7 @@
                             v.status,
                             this.formatCurrency(v.weeklyCashIn || 0),
                             `W1:$${v.week1||0}\nW2:$${v.week2||0}\nW3:$${v.week3||0}\nW4:$${v.week4||0}`,
+                            this.formatCurrency(v.tripIncome || 0),
                             this.formatCurrency(v.rev),
                             this.formatCurrency(v.expenses || 0),
                             expenseDescPdf,
@@ -2360,19 +2660,20 @@
 
                     doc.autoTable({
                         startY: 38,
-                        head: [['Asset', 'Type / Owner', 'Status', 'Target', 'Wk 1-4 Breakdown', 'Revenue', 'Expenses', 'Expense Descriptions', 'Balance', 'Net Profit']],
+                        head: [['Asset', 'Type / Owner', 'Status', 'Target', 'Wk 1-4 Breakdown', 'Trip Income', 'Revenue', 'Expenses', 'Expense Descriptions', 'Balance', 'Net Profit']],
                         body: tableData,
                         theme: 'striped',
                         headStyles: { fillColor: [0, 64, 161] },
-                        styles: { fontSize: 7.5, cellPadding: 2.5 },
+                        styles: { fontSize: 7, cellPadding: 2 },
                         columnStyles: {
                             3: { halign: 'right' },
                             4: { halign: 'center' },
-                            5: { halign: 'right' },
+                            5: { halign: 'right', fontStyle: 'bold' },
                             6: { halign: 'right', fontStyle: 'bold' },
-                            7: { halign: 'left', cellWidth: 52 },
-                            8: { halign: 'right' },
-                            9: { halign: 'right', fontStyle: 'bold' }
+                            7: { halign: 'right' },
+                            8: { halign: 'left', cellWidth: 45 },
+                            9: { halign: 'right' },
+                            10: { halign: 'right', fontStyle: 'bold' }
                         }
                     });
 

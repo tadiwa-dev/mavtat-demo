@@ -17,6 +17,10 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder');
 
+// In-memory fallback stores (used if database tables are not present)
+const inMemoryTrips = [];
+const inMemoryClosedBooks = [];
+
 // Middleware
 app.use(cors({
     origin: true,
@@ -387,6 +391,248 @@ app.post('/api/payments', requireAuth, requireWriteAccess, async (req, res) => {
     res.status(201).json({ id: data.id, message: 'Payment recorded successfully' });
 });
 
+// ============= TRIP ENDPOINTS =============
+
+app.get('/api/trips', requireAuth, async (req, res) => {
+    const { vehicle_id, month, year } = req.query;
+    try {
+        let { data, error } = await supabase
+            .from('trips')
+            .select('*')
+            .order('date', { ascending: false });
+
+        if (error) throw error;
+        let result = data || [];
+        if (vehicle_id) result = result.filter(t => t.vehicle_id == vehicle_id);
+        if (month && year) {
+            const m = parseInt(month);
+            const y = parseInt(year);
+            result = result.filter(t => {
+                const d = new Date(t.date);
+                return d.getMonth() + 1 === m && d.getFullYear() === y;
+            });
+        }
+        return res.json(result);
+    } catch (err) {
+        let result = [...inMemoryTrips];
+        if (vehicle_id) result = result.filter(t => t.vehicle_id == vehicle_id);
+        if (month && year) {
+            const m = parseInt(month);
+            const y = parseInt(year);
+            result = result.filter(t => {
+                const d = new Date(t.date);
+                return d.getMonth() + 1 === m && d.getFullYear() === y;
+            });
+        }
+        return res.json(result);
+    }
+});
+
+app.post('/api/trips', requireAuth, requireWriteAccess, async (req, res) => {
+    const { vehicle_id, amount, date, description } = req.body;
+
+    if (!vehicle_id || amount === undefined || amount === null) {
+        return res.status(400).json({ error: 'Missing required fields (vehicle_id, amount)' });
+    }
+
+    const tripAmount = parseFloat(amount) || 0;
+    const tripDate = date ? new Date(date).toISOString() : new Date().toISOString();
+    const tripDesc = description || 'Trip Income';
+
+    const insertPayload = {
+        id: 'trip_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        vehicle_id,
+        amount: tripAmount,
+        date: tripDate,
+        description: tripDesc,
+        recorded_by: req.user.id,
+        created_at: new Date().toISOString()
+    };
+
+    try {
+        const { data, error } = await supabase
+            .from('trips')
+            .insert([insertPayload])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return res.status(201).json({ success: true, trip: data, message: 'Trip income recorded successfully' });
+    } catch (err) {
+        inMemoryTrips.unshift(insertPayload);
+        return res.status(201).json({ success: true, trip: insertPayload, message: 'Trip income recorded successfully' });
+    }
+});
+
+app.delete('/api/trips/:id', requireAuth, requireWriteAccess, async (req, res) => {
+    const tripId = req.params.id;
+    try {
+        await supabase.from('trips').delete().eq('id', tripId);
+    } catch (err) {}
+    const idx = inMemoryTrips.findIndex(t => t.id == tripId);
+    if (idx !== -1) inMemoryTrips.splice(idx, 1);
+
+    res.json({ success: true, message: 'Trip record deleted' });
+});
+
+// ============= CLOSED BOOKS ENDPOINTS =============
+
+app.get('/api/books/closed', requireAuth, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('closed_books')
+            .select('*')
+            .order('closed_at', { ascending: false });
+
+        if (error) throw error;
+        return res.json(data || inMemoryClosedBooks);
+    } catch (err) {
+        return res.json(inMemoryClosedBooks);
+    }
+});
+
+app.get('/api/books/closed/:month/:year', requireAuth, async (req, res) => {
+    const targetMonth = parseInt(req.params.month);
+    const targetYear = parseInt(req.params.year);
+
+    try {
+        const { data, error } = await supabase
+            .from('closed_books')
+            .select('*')
+            .eq('month', targetMonth)
+            .eq('year', targetYear)
+            .single();
+
+        if (error || !data) throw error || new Error('Not found');
+        return res.json(data);
+    } catch (err) {
+        const found = inMemoryClosedBooks.find(b => b.month === targetMonth && b.year === targetYear);
+        if (found) return res.json(found);
+        return res.status(404).json({ error: `No closed books record for ${targetMonth}/${targetYear}` });
+    }
+});
+
+app.post('/api/books/close', requireAuth, requireWriteAccess, async (req, res) => {
+    const now = new Date();
+    const month = parseInt(req.body.month) || (now.getMonth() + 1);
+    const year = parseInt(req.body.year) || now.getFullYear();
+
+    const { data: vehicles } = await supabase.from('vehicles').select('*');
+    if (!vehicles || vehicles.length === 0) {
+        return res.status(400).json({ error: 'No vehicles found to close books for' });
+    }
+
+    const isInTargetPeriod = (dateStr) => {
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return false;
+        return (d.getMonth() + 1) === month && d.getFullYear() === year;
+    };
+
+    let allTrips = [];
+    try {
+        const { data: dbTrips } = await supabase.from('trips').select('*');
+        allTrips = dbTrips || [];
+    } catch (e) {}
+    allTrips = [...allTrips, ...inMemoryTrips];
+
+    const reportsData = await Promise.all(vehicles.map(async (v) => {
+        const { data: rentals } = await supabase.from('rental').select('price, start_date').eq('vehicle_id', v.id);
+        const { data: payments } = await supabase.from('payments').select('amount, date').eq('vehicle_id', v.id);
+        const { data: maintenance } = await supabase.from('maintenance').select('cost, service_type, notes, date').eq('vehicle_id', v.id).order('date', { ascending: false });
+
+        const filteredRentals = (rentals || []).filter(r => isInTargetPeriod(r.start_date));
+        const filteredPayments = (payments || []).filter(p => isInTargetPeriod(p.date));
+        const filteredMaintenance = (maintenance || []).filter(m => isInTargetPeriod(m.date));
+        const filteredTrips = allTrips.filter(t => t.vehicle_id == v.id && isInTargetPeriod(t.date));
+
+        const rentalIncome = filteredRentals.reduce((sum, r) => sum + (r.price || 0), 0);
+        const paymentIncome = filteredPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        const tripIncome = filteredTrips.reduce((sum, t) => sum + (t.amount || 0), 0);
+        const totalRevenue = rentalIncome + paymentIncome + tripIncome;
+
+        let week1 = 0, week2 = 0, week3 = 0, week4 = 0;
+        filteredPayments.forEach(p => {
+            const amt = p.amount || 0;
+            const pDate = p.date ? new Date(p.date) : null;
+            let weekNum = pDate ? pDate.getSeconds() : 1;
+            if (weekNum < 1 || weekNum > 4) {
+                const day = pDate ? pDate.getDate() : 1;
+                if (day <= 7) weekNum = 1;
+                else if (day <= 14) weekNum = 2;
+                else if (day <= 21) weekNum = 3;
+                else weekNum = 4;
+            }
+            if (weekNum === 1) week1 += amt;
+            else if (weekNum === 2) week2 += amt;
+            else if (weekNum === 3) week3 += amt;
+            else week4 += amt;
+        });
+
+        const totalExpenses = filteredMaintenance.reduce((sum, m) => sum + (m.cost || 0), 0);
+
+        return {
+            id: v.id,
+            vehicle: `${v.make} ${v.model}`,
+            license_plate: v.license_plate,
+            type: v.type,
+            actual_owner: v.actual_owner || 'N/A',
+            weekly_cash_in: v.weekly_cash_in || 0,
+            balance: v.balance || 0,
+            total_rentals: filteredRentals.length + filteredPayments.length,
+            rental_income: rentalIncome,
+            payment_income: paymentIncome,
+            trip_income: tripIncome,
+            trips: filteredTrips,
+            total_revenue: totalRevenue,
+            week1, week2, week3, week4,
+            total_maintenance_cost: totalExpenses,
+            expense_descriptions: filteredMaintenance,
+            net_profit: totalRevenue - totalExpenses
+        };
+    }));
+
+    const totalRev = reportsData.reduce((s, r) => s + r.total_revenue, 0);
+    const totalExp = reportsData.reduce((s, r) => s + r.total_maintenance_cost, 0);
+    const totalBal = reportsData.reduce((s, r) => s + r.balance, 0);
+
+    const snapshot = {
+        id: 'cb_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        month,
+        year,
+        closed_at: new Date().toISOString(),
+        closed_by: req.user.username || 'admin',
+        summary: {
+            total_revenue: totalRev,
+            total_expenses: totalExp,
+            net_profit: totalRev - totalExp,
+            total_balance: totalBal,
+            vehicle_count: vehicles.length
+        },
+        reports: reportsData
+    };
+
+    try {
+        const { error } = await supabase.from('closed_books').insert([snapshot]);
+        if (error) throw error;
+    } catch (e) {
+        const existingIdx = inMemoryClosedBooks.findIndex(b => b.month === month && b.year === year);
+        if (existingIdx !== -1) inMemoryClosedBooks.splice(existingIdx, 1);
+        inMemoryClosedBooks.unshift(snapshot);
+    }
+
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextYear = month === 12 ? year + 1 : year;
+
+    res.json({
+        success: true,
+        message: `Books for ${month}/${year} closed and archived successfully! Starting new month (${nextMonth}/${nextYear}).`,
+        snapshot,
+        nextMonth,
+        nextYear
+    });
+});
+
 // ============= RENTAL ENDPOINTS =============
 
 app.get('/api/rental', requireAuth, async (req, res) => {
@@ -453,17 +699,36 @@ app.patch('/api/rental/:id/end', requireAuth, async (req, res) => {
 // ============= REPORTS ENDPOINTS =============
 
 app.get('/api/reports/revenue', requireAuth, async (req, res) => {
-    // Note: Complex joins are better done via RPC or View in Supabase, 
-    // but for now we can do a simplified version or multiple queries.
-    // Let's use a simpler approach for the demo.
-    const { data: vehicles, error: vErr } = await supabase.from('vehicles').select('id, make, model, license_plate, type, balance');
-    if (vErr) return res.status(500).json({ error: vErr.message });
-
     const monthParam = req.query.month;
     const yearParam = req.query.year;
     const isAllTime = monthParam === 'all';
     const targetMonth = isAllTime ? null : (parseInt(monthParam) || (new Date().getMonth() + 1));
     const targetYear = isAllTime ? null : (parseInt(yearParam) || new Date().getFullYear());
+
+    // First check if closed books exist for this exact month/year
+    if (!isAllTime && targetMonth && targetYear) {
+        let closedRecord = null;
+        try {
+            const { data } = await supabase
+                .from('closed_books')
+                .select('*')
+                .eq('month', targetMonth)
+                .eq('year', targetYear)
+                .single();
+            closedRecord = data;
+        } catch (e) {}
+
+        if (!closedRecord) {
+            closedRecord = inMemoryClosedBooks.find(b => b.month === targetMonth && b.year === targetYear);
+        }
+
+        if (closedRecord && closedRecord.reports) {
+            return res.json(closedRecord.reports);
+        }
+    }
+
+    const { data: vehicles, error: vErr } = await supabase.from('vehicles').select('id, make, model, license_plate, type, balance, actual_owner, weekly_cash_in');
+    if (vErr) return res.status(500).json({ error: vErr.message });
 
     const isInTargetPeriod = (dateStr) => {
         if (isAllTime) return true;
@@ -473,6 +738,13 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
         return (d.getMonth() + 1) === targetMonth && d.getFullYear() === targetYear;
     };
 
+    let allTrips = [];
+    try {
+        const { data: dbTrips } = await supabase.from('trips').select('*');
+        allTrips = dbTrips || [];
+    } catch (e) {}
+    allTrips = [...allTrips, ...inMemoryTrips];
+
     const reports = await Promise.all(vehicles.map(async (v) => {
         const { data: rentals } = await supabase.from('rental').select('price, start_date').eq('vehicle_id', v.id);
         const { data: payments } = await supabase.from('payments').select('amount, date').eq('vehicle_id', v.id);
@@ -481,10 +753,12 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
         const filteredRentals = (rentals || []).filter(r => isInTargetPeriod(r.start_date));
         const filteredPayments = (payments || []).filter(p => isInTargetPeriod(p.date));
         const filteredMaintenance = (maintenance || []).filter(m => isInTargetPeriod(m.date));
+        const filteredTrips = allTrips.filter(t => t.vehicle_id == v.id && isInTargetPeriod(t.date));
 
         const rentalIncome = filteredRentals.reduce((sum, r) => sum + (r.price || 0), 0);
         const paymentIncome = filteredPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-        const totalRevenue = rentalIncome + paymentIncome;
+        const tripIncome = filteredTrips.reduce((sum, t) => sum + (t.amount || 0), 0);
+        const totalRevenue = rentalIncome + paymentIncome + tripIncome;
 
         let week1 = 0, week2 = 0, week3 = 0, week4 = 0;
         filteredPayments.forEach(p => {
@@ -509,8 +783,14 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
             vehicle: `${v.make} ${v.model}`,
             license_plate: v.license_plate,
             type: v.type,
+            actual_owner: v.actual_owner || 'N/A',
+            weekly_cash_in: v.weekly_cash_in || 0,
             balance: v.balance || 0,
             total_rentals: filteredRentals.length + filteredPayments.length,
+            rental_income: rentalIncome,
+            payment_income: paymentIncome,
+            trip_income: tripIncome,
+            trips: filteredTrips,
             total_revenue: totalRevenue,
             week1,
             week2,
@@ -523,6 +803,7 @@ app.get('/api/reports/revenue', requireAuth, async (req, res) => {
 
     res.json(reports);
 });
+
 
 app.get('/api/reports/fuel', requireAuth, async (req, res) => {
     const { data: vehicles, error: vErr } = await supabase.from('vehicles').select('id, make, model, license_plate');

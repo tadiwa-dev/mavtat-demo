@@ -68,8 +68,11 @@ app.init = async function() {
                 vehicle.week2 = report.week2 || 0;
                 vehicle.week3 = report.week3 || 0;
                 vehicle.week4 = report.week4 || 0;
+                vehicle.tripIncome = report.trip_income || 0;
+                vehicle.trips = report.trips || [];
             }
         });
+
         
         // Load activities from cloud
         app.state.activities = activitiesData.map(a => ({

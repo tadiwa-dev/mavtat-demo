@@ -234,5 +234,66 @@ const API = {
             if (!response.ok) throw new Error('Failed to fetch fleet summary');
             return response.json();
         }
+    },
+
+    trips: {
+        list: async (filters = {}) => {
+            const query = new URLSearchParams(filters).toString();
+            const response = await fetch(`${API_BASE_URL}/trips${query ? '?' + query : ''}`, {
+                headers: getAuthHeaders()
+            });
+            if (!response.ok) throw new Error('Failed to fetch trips');
+            return response.json();
+        },
+        create: async (data) => {
+            const response = await fetch(`${API_BASE_URL}/trips`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Failed to record trip income');
+            }
+            return response.json();
+        },
+        delete: async (id) => {
+            const response = await fetch(`${API_BASE_URL}/trips/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+            if (!response.ok) throw new Error('Failed to delete trip');
+            return response.json();
+        }
+    },
+
+    books: {
+        listClosed: async () => {
+            const response = await fetch(`${API_BASE_URL}/books/closed`, {
+                headers: getAuthHeaders()
+            });
+            if (!response.ok) throw new Error('Failed to fetch closed books');
+            return response.json();
+        },
+        getClosed: async (month, year) => {
+            const response = await fetch(`${API_BASE_URL}/books/closed/${month}/${year}`, {
+                headers: getAuthHeaders()
+            });
+            if (!response.ok) throw new Error('Failed to fetch closed books for month');
+            return response.json();
+        },
+        close: async (month, year) => {
+            const response = await fetch(`${API_BASE_URL}/books/close`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ month, year })
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Failed to close books');
+            }
+            return response.json();
+        }
     }
 };
+

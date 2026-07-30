@@ -720,6 +720,13 @@
                         <p class="text-xs text-secondary" id="ci-plate">Plate</p>
                     </div>
                 </div>
+                <div id="ci-closed-note-banner" class="hidden bg-amber-50 border border-amber-200/80 rounded-xl p-3 flex items-start gap-2.5">
+                    <span class="material-symbols-outlined text-amber-600 text-lg shrink-0 mt-0.5">sticky_note_2</span>
+                    <div class="text-xs">
+                        <span class="font-bold text-amber-900 block">Previous Closed Book Balance Note</span>
+                        <span id="ci-closed-note-text" class="text-amber-800 font-medium"></span>
+                    </div>
+                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-1">Weekly Target ($)</label>
@@ -899,6 +906,15 @@
                         </div>
                     </div>
                 </details>
+                <div id="ev-closed-balance-notes-container" class="hidden bg-amber-50/70 p-3 rounded-xl border border-amber-200/80 text-xs">
+                    <div class="flex items-center gap-1.5 font-bold text-amber-900 mb-2">
+                        <span class="material-symbols-outlined text-amber-600 text-sm">history_edu</span>
+                        <span>Closed Balance Notes History</span>
+                    </div>
+                    <div id="ev-closed-balance-notes-list" class="space-y-1.5 max-h-36 overflow-y-auto">
+                        <!-- Dynamic notes list -->
+                    </div>
+                </div>
                 <div class="pt-4 flex flex-col gap-3">
                     <div class="flex gap-3">
                         <button type="button" onclick="app.closeModal('modal-edit-vehicle')" class="flex-1 px-4 py-2 bg-surface-container-high text-on-surface font-bold rounded-xl hover:bg-surface-variant transition-colors">Cancel</button>
@@ -1737,6 +1753,12 @@
                         <td class="px-4 py-4">
                             <span class="sm-label">Balance</span>
                             <p class="text-sm font-bold ${v.balance < 0 ? 'text-rose-600' : 'text-slate-800'}">${this.formatCurrency(v.balance)}</p>
+                            ${(v.last_closed_balance !== undefined && v.last_closed_balance !== null && v.last_closed_balance !== 0) ? `
+                                <div class="mt-1 inline-flex items-center gap-1 bg-amber-50 border border-amber-200/80 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-md" title="Closed balance from ${v.last_closed_period || 'previous period'}">
+                                    <span class="material-symbols-outlined text-[12px] text-amber-600">sticky_note_2</span>
+                                    <span>Closed Note: ${this.formatCurrency(v.last_closed_balance)}</span>
+                                </div>
+                            ` : ''}
                         </td>
                         ` : `
                         <td class="px-3 py-4 text-center text-slate-300 text-xs">-</td>
@@ -2156,11 +2178,31 @@
                 this.showToast('Closing books and archiving monthly financial metrics...');
 
                 try {
+                    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                    const periodStr = `${months[m - 1]} ${y}`;
+
                     const result = await API.books.close(m, y);
                     this.showToast(result.message || 'Books successfully closed and archived!');
                     
-                    // Reset active figures for vehicles
+                    // Reset active figures for vehicles and attach balance notes for remaining balance
                     this.state.vehicles.forEach(v => {
+                        const activeBal = v.balance || 0;
+                        if (activeBal !== 0) {
+                            const formattedAmt = activeBal > 0 ? `$${activeBal.toFixed(2)}` : `-$${Math.abs(activeBal).toFixed(2)}`;
+                            const noteObj = {
+                                id: 'cbn_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                                period: periodStr,
+                                amount: activeBal,
+                                text: `Closed balance for ${periodStr}: ${formattedAmt}`,
+                                date: new Date().toISOString()
+                            };
+                            if (!v.closed_balance_notes) v.closed_balance_notes = [];
+                            v.closed_balance_notes.unshift(noteObj);
+                            v.last_closed_balance = activeBal;
+                            v.last_closed_period = periodStr;
+                        }
+
+                        v.balance = 0; // Reset active balance to 0 on book close
                         v.week1 = 0;
                         v.week2 = 0;
                         v.week3 = 0;
@@ -2275,6 +2317,18 @@
                 if (weekEl) weekEl.value = String(this.getCurrentWeekNumber());
                 document.getElementById('ci-payment').value = '';
                 
+                // Toggle & populate closed balance note banner
+                const bannerEl = document.getElementById('ci-closed-note-banner');
+                const textEl = document.getElementById('ci-closed-note-text');
+                if (bannerEl && textEl) {
+                    if (vehicle.last_closed_balance !== undefined && vehicle.last_closed_balance !== null && vehicle.last_closed_balance !== 0) {
+                        textEl.innerText = `Vehicle has a remaining balance note of ${this.formatCurrency(vehicle.last_closed_balance)} from ${vehicle.last_closed_period || 'previous closed books'}.`;
+                        bannerEl.classList.remove('hidden');
+                    } else {
+                        bannerEl.classList.add('hidden');
+                    }
+                }
+
                 this.openModal('modal-update-cashin');
             },
 
@@ -2477,6 +2531,27 @@
                     deleteContainer.classList.add('hidden');
                 }
                 
+                // Render closed balance notes history list
+                const notesListEl = document.getElementById('ev-closed-balance-notes-list');
+                const notesContainerEl = document.getElementById('ev-closed-balance-notes-container');
+                if (notesListEl && notesContainerEl) {
+                    const notes = vehicle.closed_balance_notes || [];
+                    if (notes.length > 0) {
+                        notesContainerEl.classList.remove('hidden');
+                        notesListEl.innerHTML = notes.map(n => `
+                            <div class="bg-white/90 p-2.5 rounded-lg border border-amber-200/60 flex justify-between items-center text-slate-700 shadow-xs">
+                                <div>
+                                    <span class="font-bold block text-amber-950 text-xs">${n.period || 'Closed Books'}</span>
+                                    <span class="text-[10px] text-slate-400 font-medium">${n.date ? new Date(n.date).toLocaleDateString() : ''}</span>
+                                </div>
+                                <span class="font-black text-amber-800 bg-amber-100/90 px-2.5 py-0.5 rounded-full text-xs">${this.formatCurrency(n.amount)}</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        notesContainerEl.classList.add('hidden');
+                    }
+                }
+
                 this.openModal('modal-edit-vehicle');
             },
 

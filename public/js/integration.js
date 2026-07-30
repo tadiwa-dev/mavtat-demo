@@ -46,7 +46,10 @@ app.init = async function() {
             week4: 0,
             // Add cash-in tracking for taxis and rentals
             weeklyCashIn: v.weekly_cash_in || 0,
-            balance: v.balance || 0
+            balance: v.balance || 0,
+            closed_balance_notes: v.closed_balance_notes || [],
+            last_closed_balance: v.last_closed_balance ?? null,
+            last_closed_period: v.last_closed_period ?? null
         }));
 
         // Merge revenue data
@@ -106,7 +109,9 @@ app.init = async function() {
                         { service_type: 'Operational Expense', cost: 65, notes: 'Engine oil change & top-up', date: new Date().toISOString() }
                     ],
                     week1: 120, week2: 110, week3: 110, week4: 110,
-                    weeklyCashIn: 150, balance: 30
+                    weeklyCashIn: 150, balance: 30,
+                    closed_balance_notes: [{ text: 'Closed balance for June 2026: $30.00', period: 'June 2026', amount: 30, date: '2026-06-30T00:00:00.000Z' }],
+                    last_closed_balance: 30, last_closed_period: 'June 2026'
                 },
                 {
                     id: 'demo-2',
@@ -124,7 +129,9 @@ app.init = async function() {
                         { service_type: 'Operational Expense', cost: 30, notes: 'Car wash and detailing', date: new Date().toISOString() }
                     ],
                     week1: 150, week2: 160, week3: 150, week4: 160,
-                    weeklyCashIn: 200, balance: 80
+                    weeklyCashIn: 200, balance: 80,
+                    closed_balance_notes: [{ text: 'Closed balance for June 2026: $80.00', period: 'June 2026', amount: 80, date: '2026-06-30T00:00:00.000Z' }],
+                    last_closed_balance: 80, last_closed_period: 'June 2026'
                 },
                 {
                     id: 'demo-3',
@@ -142,7 +149,9 @@ app.init = async function() {
                         { service_type: 'Operational Expense', cost: 30, notes: 'Spark plug replacement', date: new Date().toISOString() }
                     ],
                     week1: 90, week2: 95, week3: 95, week4: 0,
-                    weeklyCashIn: 120, balance: -40
+                    weeklyCashIn: 120, balance: -40,
+                    closed_balance_notes: [{ text: 'Closed balance for June 2026: -$40.00', period: 'June 2026', amount: -40, date: '2026-06-30T00:00:00.000Z' }],
+                    last_closed_balance: -40, last_closed_period: 'June 2026'
                 }
             ];
         }

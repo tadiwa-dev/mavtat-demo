@@ -20,6 +20,7 @@ const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', 
 // In-memory fallback stores (used if database tables are not present)
 const inMemoryTrips = [];
 const inMemoryClosedBooks = [];
+const inMemoryClosedBalanceNotes = {};
 
 // Middleware
 app.use(cors({
@@ -182,7 +183,26 @@ app.get('/api/vehicles', requireAuth, async (req, res) => {
     const { data: vehicles, error } = await query.order('created_at', { ascending: false });
 
     if (error) return res.status(500).json({ error: error.message });
-    res.json(vehicles || []);
+
+    const formattedVehicles = (vehicles || []).map(v => {
+        let notes = inMemoryClosedBalanceNotes[v.id];
+        if (!notes && v.closed_balance_notes) {
+            try {
+                notes = typeof v.closed_balance_notes === 'string' ? JSON.parse(v.closed_balance_notes) : v.closed_balance_notes;
+            } catch (err) {
+                notes = [];
+            }
+        }
+        const lastNote = (notes && notes.length > 0) ? notes[0] : null;
+        return {
+            ...v,
+            closed_balance_notes: notes || [],
+            last_closed_balance: lastNote ? lastNote.amount : (v.last_closed_balance ?? null),
+            last_closed_period: lastNote ? lastNote.period : (v.last_closed_period ?? null)
+        };
+    });
+
+    res.json(formattedVehicles);
 });
 
 app.get('/api/vehicles/:id', requireAuth, async (req, res) => {
@@ -194,7 +214,23 @@ app.get('/api/vehicles/:id', requireAuth, async (req, res) => {
 
     if (error) return res.status(500).json({ error: error.message });
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found' });
-    res.json(vehicle);
+
+    let notes = inMemoryClosedBalanceNotes[vehicle.id];
+    if (!notes && vehicle.closed_balance_notes) {
+        try {
+            notes = typeof vehicle.closed_balance_notes === 'string' ? JSON.parse(vehicle.closed_balance_notes) : vehicle.closed_balance_notes;
+        } catch (err) {
+            notes = [];
+        }
+    }
+    const lastNote = (notes && notes.length > 0) ? notes[0] : null;
+
+    res.json({
+        ...vehicle,
+        closed_balance_notes: notes || [],
+        last_closed_balance: lastNote ? lastNote.amount : (vehicle.last_closed_balance ?? null),
+        last_closed_period: lastNote ? lastNote.period : (vehicle.last_closed_period ?? null)
+    });
 });
 
 app.post('/api/vehicles', requireAuth, requireWriteAccess, async (req, res) => {
@@ -621,15 +657,78 @@ app.post('/api/books/close', requireAuth, requireWriteAccess, async (req, res) =
         inMemoryClosedBooks.unshift(snapshot);
     }
 
+    // Reset vehicle balances to 0 for the new month & record remaining balance notes for vehicles with outstanding balance
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const periodStr = `${monthNames[month - 1]} ${year}`;
+    const updatedVehicleList = [];
+
+    for (const v of vehicles) {
+        const activeBal = parseFloat(v.balance) || 0;
+        let existingNotes = inMemoryClosedBalanceNotes[v.id] || [];
+        if (existingNotes.length === 0 && v.closed_balance_notes) {
+            try {
+                existingNotes = typeof v.closed_balance_notes === 'string' ? JSON.parse(v.closed_balance_notes) : v.closed_balance_notes;
+            } catch (err) {
+                existingNotes = [];
+            }
+        }
+
+        let newLastClosedBal = v.last_closed_balance;
+        let newLastClosedPeriod = v.last_closed_period;
+
+        if (activeBal !== 0) {
+            const formattedAmt = activeBal > 0 ? `$${activeBal.toFixed(2)}` : `-$${Math.abs(activeBal).toFixed(2)}`;
+            const noteObj = {
+                id: 'cbn_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                period: periodStr,
+                amount: activeBal,
+                text: `Closed balance for ${periodStr}: ${formattedAmt}`,
+                date: new Date().toISOString()
+            };
+            existingNotes = [noteObj, ...existingNotes];
+            newLastClosedBal = activeBal;
+            newLastClosedPeriod = periodStr;
+        }
+
+        inMemoryClosedBalanceNotes[v.id] = existingNotes;
+
+        const updateData = {
+            balance: 0,
+            last_closed_balance: newLastClosedBal,
+            last_closed_period: newLastClosedPeriod || periodStr,
+            closed_balance_notes: JSON.stringify(existingNotes),
+            updated_at: new Date().toISOString()
+        };
+
+        try {
+            const { error: updateErr } = await supabase.from('vehicles').update(updateData).eq('id', v.id);
+            if (updateErr) {
+                // Fallback to updating just balance if custom columns do not exist in DB schema
+                await supabase.from('vehicles').update({ balance: 0, updated_at: new Date().toISOString() }).eq('id', v.id);
+            }
+        } catch (e) {
+            console.error(`Failed DB balance reset for vehicle ${v.id}:`, e);
+        }
+
+        updatedVehicleList.push({
+            id: v.id,
+            balance: 0,
+            last_closed_balance: newLastClosedBal,
+            last_closed_period: newLastClosedPeriod,
+            closed_balance_notes: existingNotes
+        });
+    }
+
     const nextMonth = month === 12 ? 1 : month + 1;
     const nextYear = month === 12 ? year + 1 : year;
 
     res.json({
         success: true,
-        message: `Books for ${month}/${year} closed and archived successfully! Starting new month (${nextMonth}/${nextYear}).`,
+        message: `Books for ${periodStr} closed and archived successfully! Vehicle balances reset to $0.00 with remaining balances recorded as notes. Starting new month (${nextMonth}/${nextYear}).`,
         snapshot,
         nextMonth,
-        nextYear
+        nextYear,
+        updatedVehicles: updatedVehicleList
     });
 });
 
